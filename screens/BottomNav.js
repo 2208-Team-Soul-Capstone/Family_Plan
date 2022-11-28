@@ -1,16 +1,18 @@
 import * as React from 'react';
 import { BottomNavigation, Text } from 'react-native-paper';
 import ChatScreen from './ChatScreen';
+import TaskScreen from './TaskScreen';
+import GroceryScreen from './GroceryScreen';
+import CalendarScreen from './CalendarScreen';
 
-const TaskRoute = () => <Text>Task</Text>;
+const TaskRoute = () => <TaskScreen />;
 
-const GroceryRoute = () => <Text>Grocery</Text>;
+const GroceryRoute = () => <GroceryScreen />;
 
 const ChatRoute = () => <ChatScreen />;
 
-const CalendarRoute = () => <Text>Calendar</Text>;
+const CalendarRoute = () => <CalendarScreen />;
 
-const SettingsRoute = () => <Text>Settings</Text>;
 
 const BottomNav = () => {
   const [index, setIndex] = React.useState(0);
@@ -39,12 +41,7 @@ const BottomNav = () => {
       focusedIcon: 'calendar-account',
       unfocusedIcon: 'calendar-account-outline',
     },
-    {
-      key: 'settings',
-      title: 'Settings',
-      focusedIcon: 'cog',
-      unfocusedIcon: 'cog-outline',
-    },
+
   ]);
 
   const renderScene = BottomNavigation.SceneMap({
@@ -52,7 +49,6 @@ const BottomNav = () => {
     grocery: GroceryRoute,
     chat: ChatRoute,
     calendar: CalendarRoute,
-    settings: SettingsRoute,
   });
 
   return (
