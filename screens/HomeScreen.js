@@ -2,6 +2,7 @@ import { StyleSheet, Text, TouchableOpacity, View } from 'react-native'
 import React, { useEffect, useState } from 'react'
 import { auth } from '../firebase'
 import { useNavigation } from '@react-navigation/native';
+import { Button } from 'react-native-paper';
 
 
 const HomeScreen = () => {
@@ -16,8 +17,18 @@ const HomeScreen = () => {
             .catch(error => alert(error.message))
     }
 
+    const navToMessaging = () => {
+        navigation.replace('Chat');
+    }
+
     return (
         <View style={styles.container}>
+            <TouchableOpacity
+                onPress={navToMessaging}
+                style={styles.button}
+            >
+                <Text style={styles.buttonText}>Messaging</Text>
+            </TouchableOpacity>
             <Text>Logged in user: {auth.currentUser.email}</Text>
             <TouchableOpacity
                 onPress={handleSignOut}
