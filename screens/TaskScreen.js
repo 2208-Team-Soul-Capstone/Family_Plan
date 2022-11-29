@@ -8,8 +8,6 @@ const TaskScreen = () => {
 
   // temp state for adding segmented buttons
   const [value, setValue] = React.useState('');
-
-
   const [settings, setSettings] = useState(false);
 
   const navigation = useNavigation();
@@ -35,12 +33,13 @@ const TaskScreen = () => {
   };
 
 
+
   if (!settings) {
     return (
       <>
         <Appbar
           style={styles.header}>
-          <Appbar.Content title={"Tim's Tasks"} />
+          <Appbar.Content title={"Tim's Lists"} />
           <Appbar.Action icon="cog-outline" onPress={navToSettings} />
         </Appbar>
 
@@ -53,14 +52,15 @@ const TaskScreen = () => {
             buttons={[
               {
                 value: 'task',
-                label: 'Tasks',
+                label: 'Task List',
               },
               {
                 value: 'wishList',
-                label: 'WishList',
+                label: 'Wish List',
               },
             ]}
           />
+          <Text>Points: 10 of 100 for next Reward!</Text>
           <Divider />
 
         </View>
@@ -100,7 +100,7 @@ const TaskScreen = () => {
               source={{ uri: 'https://scontent-msp1-1.xx.fbcdn.net/v/t39.30808-6/273873496_10106286086005355_6120426208304554129_n.jpg?_nc_cat=102&ccb=1-7&_nc_sid=09cbfe&_nc_ohc=q5432tTCbXIAX9YmUX-&_nc_ht=scontent-msp1-1.xx&oh=00_AfCQ12AZxGj389XacfKheoxe2vBz-M7Xa2ED23L68DMf_w&oe=63899248' }}
             />
           </Text>
-          <Text>Name: Tim</Text>
+          <Text>Name: Name</Text>
           <Text>E-mail: {auth.currentUser.email}</Text>
           <Text>Family: familyname</Text>
           <Text>Edit Settings - Link</Text>
