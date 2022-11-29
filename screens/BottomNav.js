@@ -19,7 +19,7 @@ const BottomNav = () => {
   const [routes] = React.useState([
     {
       key: 'task',
-      title: 'Tasks',
+      title: 'Lists',
       focusedIcon: 'clipboard-list',
       unfocusedIcon: 'clipboard-list-outline',
     },
