@@ -39,67 +39,75 @@ const TaskScreen = () => {
     return (
       <>
         <Appbar
-        style={styles.header}>
-        <Appbar.Content title={"Tim's Tasks"} />
-    <Appbar.Action icon="cog-outline" onPress={navToSettings} />
+          style={styles.header}>
+          <Appbar.Content title={"Tim's Tasks"} />
+          <Appbar.Action icon="cog-outline" onPress={navToSettings} />
         </Appbar>
-        
+
 
         <View style={styles.taskMenu}>
           <SegmentedButtons
-          style={styles.segButtons}
-        value={value}
-        onValueChange={setValue}
-        buttons={[
-          {
-            value: 'task',
-            label: 'Tasks',
-          },
-          {
-            value: 'wishList',
-            label: 'WishList',
-          },
-        ]}
-      />
-                <Divider />
+            style={styles.segButtons}
+            value={value}
+            onValueChange={setValue}
+            buttons={[
+              {
+                value: 'task',
+                label: 'Tasks',
+              },
+              {
+                value: 'wishList',
+                label: 'WishList',
+              },
+            ]}
+          />
+          <Divider />
 
         </View>
         <View style={styles.taskList}>
-        <List.Section>
-    <List.Item title="Do the laundry" left={() => <List.Icon icon="checkbox-multiple-outline" />} />
-    <List.Item title="Clean room" left={() => <List.Icon icon="checkbox-multiple-outline" />} />
-    <List.Item title="Finish Science Project" left={() => <List.Icon icon="checkbox-multiple-outline" />} />
-    <List.Item title="Take dog for walk" left={() => <List.Icon icon="checkbox-multiple-outline" />} />
+          <List.Section>
+            <List.Item title="Do the laundry"
+              description="5 points"
+              left={() => <List.Icon icon="checkbox-multiple-outline" />} />
+            <List.Item title="Clean room"
+              description="5 points"
+              left={() => <List.Icon icon="checkbox-multiple-outline" />} />
+            <List.Item title="Finish Science Project"
+              description="10 points"
+              left={() => <List.Icon icon="checkbox-multiple-outline" />} />
+            <List.Item title="Take dog for walk"
+              description="3 points"
+              left={() => <List.Icon icon="checkbox-multiple-outline" />} />
 
-  </List.Section>
-                </View>
+          </List.Section>
+        </View>
       </>
     )
   }
   else if (settings) {
     return (
       <>
-      
-      <Appbar
-        style={styles.header}>
-        <Appbar.Content title={'Settings'} />
-    <Appbar.Action icon="keyboard-backspace" onPress={navToSettings} />
+
+        <Appbar
+          style={styles.header}>
+          <Appbar.Content title={'Settings'} />
+          <Appbar.Action icon="keyboard-backspace" onPress={navToSettings} />
         </Appbar>
         <View style={styles.userInfo}>
           <Text style={styles.av}>
-        <Avatar.Image
-            size={130}
-            source={{ uri: 'https://scontent-msp1-1.xx.fbcdn.net/v/t39.30808-6/273873496_10106286086005355_6120426208304554129_n.jpg?_nc_cat=102&ccb=1-7&_nc_sid=09cbfe&_nc_ohc=q5432tTCbXIAX9YmUX-&_nc_ht=scontent-msp1-1.xx&oh=00_AfCQ12AZxGj389XacfKheoxe2vBz-M7Xa2ED23L68DMf_w&oe=63899248' }} 
-            />          
+            <Avatar.Image
+              size={130}
+              source={{ uri: 'https://scontent-msp1-1.xx.fbcdn.net/v/t39.30808-6/273873496_10106286086005355_6120426208304554129_n.jpg?_nc_cat=102&ccb=1-7&_nc_sid=09cbfe&_nc_ohc=q5432tTCbXIAX9YmUX-&_nc_ht=scontent-msp1-1.xx&oh=00_AfCQ12AZxGj389XacfKheoxe2vBz-M7Xa2ED23L68DMf_w&oe=63899248' }}
+            />
           </Text>
-            <Text>Name: Tim</Text>
+          <Text>Name: Tim</Text>
           <Text>E-mail: {auth.currentUser.email}</Text>
           <Text>Family: familyname</Text>
           <Text>Edit Settings - Link</Text>
           <Button icon="logout" mode="contained" onPress={handleSignOut} style={styles.logoutButton}>
-    Logout
-  </Button>
-</View>
+            Logout
+          </Button>
+        </View>
       </>
     )
   }
