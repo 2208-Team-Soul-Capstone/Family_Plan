@@ -12,7 +12,7 @@ const CalendarScreen = () => {
       <Appbar
         style={styles.header}
         >    
-        <Appbar.Content title={'Calendar'} />      
+        <Appbar.Content title={'Family Events Calendar'} />      
         </Appbar>
 
       <View>

@@ -1,6 +1,6 @@
 import { StyleSheet, Text, View } from 'react-native'
 import React from 'react'
-import { Button, Appbar, Checkbox, TextInput} from 'react-native-paper';
+import { Button, Appbar, Checkbox, TextInput, Divider} from 'react-native-paper';
 
 
 const GroceryScreen = () => {
@@ -17,20 +17,23 @@ const GroceryScreen = () => {
     <Appbar
       style={styles.header}
       >    
-      <Appbar.Content title={'Grocery List'} />      
+      <Appbar.Content title={'Family Grocery List'} />      
       </Appbar>
 
     <View>
     {
       items.map((item) => {
         return (
+          <>
           <Checkbox.Item 
           label={item} 
+          color='green'
           status={checked ? 'checked' : 'unchecked'}
           onPress={() => {
             setChecked(!checked);
           }} />
-
+          <Divider/>
+          </>
         )
       })
     }
