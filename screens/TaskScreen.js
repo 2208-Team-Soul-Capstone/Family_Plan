@@ -2,9 +2,13 @@ import { StyleSheet, Text, TouchableOpacity, View } from 'react-native'
 import React, { useState } from 'react'
 import { auth } from '../firebase';
 import { useNavigation } from '@react-navigation/native';
-import { Button } from 'react-native-paper';
+import { Button, Divider, SegmentedButtons, Appbar, Avatar, List } from 'react-native-paper';
 
 const TaskScreen = () => {
+
+  // temp state for adding segmented buttons
+  const [value, setValue] = React.useState('');
+
 
   const [settings, setSettings] = useState(false);
 
@@ -34,43 +38,68 @@ const TaskScreen = () => {
   if (!settings) {
     return (
       <>
-        <View style={styles.header}>
-          <Text>Welcome {auth.currentUser.email}</Text>
-          <TouchableOpacity onPress={navToSettings} style={styles.button}>
+        <Appbar
+        style={styles.header}>
+        <Appbar.Content title={'Tasks'} />
+    <Appbar.Action icon="cog-outline" onPress={navToSettings} />
+        </Appbar>
+        
 
-            <Text style={styles.buttonText}>Settings</Text>
-          </TouchableOpacity>
+        <View style={styles.taskMenu}>
+          <SegmentedButtons
+          style={styles.segButtons}
+        value={value}
+        onValueChange={setValue}
+        buttons={[
+          {
+            value: 'task',
+            label: 'Tasks',
+          },
+          {
+            value: 'wishList',
+            label: 'WishList',
+          },
+        ]}
+      />
+                <Divider />
+
         </View>
-        <View>
-          <Text>Top Task Menu</Text>
-          <Text>Tasks or wishlist below</Text>
+        <View style={styles.taskList}>
+        <List.Section>
+    <List.Item title="Do the laundry" left={() => <List.Icon icon="checkbox-multiple-outline" />} />
+    <List.Item title="Clean room" left={() => <List.Icon icon="checkbox-multiple-outline" />} />
+    <List.Item title="Finish Science Project" left={() => <List.Icon icon="checkbox-multiple-outline" />} />
+    <List.Item title="Take dog for walk" left={() => <List.Icon icon="checkbox-multiple-outline" />} />
 
-
-
-        </View>
+  </List.Section>
+                </View>
       </>
     )
   }
   else if (settings) {
     return (
       <>
-        <View style={styles.header}>
-          <Text>Settings </Text>
-        </View>
-        <View>
-          <Text>User Image</Text>
-          <Text>Username: username</Text>
-          <Text>E-mail: email@address.com</Text>
+      
+      <Appbar
+        style={styles.header}>
+        <Appbar.Content title={'Settings'} />
+    <Appbar.Action icon="keyboard-backspace" onPress={navToSettings} />
+        </Appbar>
+        <View style={styles.userInfo}>
+          <Text style={styles.av}>
+        <Avatar.Image
+            size={130}
+            source={{ uri: 'https://reactnativecode.com/wp-content/uploads/2021/04/Rose.jpg' }} 
+            />          
+          </Text>
+            <Text>Name: Tim</Text>
+          <Text>E-mail: {auth.currentUser.email}</Text>
           <Text>Family: familyname</Text>
           <Text>Edit Settings - Link</Text>
-
-          <TouchableOpacity onPress={navToSettings} style={styles.button}>
-            <Text style={styles.buttonText}>Exit Settings</Text>
-          </TouchableOpacity>
-          <TouchableOpacity onPress={handleSignOut} style={styles.button}>
-          <Text style={styles.buttonText}>Logout</Text>
-        </TouchableOpacity>
-        </View>
+          <Button icon="logout" mode="contained" onPress={handleSignOut} style={styles.logoutButton}>
+    Logout
+  </Button>
+</View>
       </>
     )
   }
@@ -81,11 +110,41 @@ export default TaskScreen
 const styles = StyleSheet.create({
   header: {
     marginTop: 60,
+    flexDirection: "row",
+    justifyContent: 'flex-end',
+    marginBottom: 10,
+    fontSize: 30,
+    backgroundColor: '#c4def6',
+  },
+  headerText: {
+    fontSize: 30,
+  },
+  taskMenu: {
+    height: 60,
+  },
+  taskList: {
+    justifyContent: 'space-around',
     marginLeft: 20,
+    marginTop: 20,
+  },
+  segButtons: {
+    marginLeft: 'auto',
+    marginRight: 'auto',
+    marginTop: 10,
+    marginBottom: 10,
+  },
+  settingsButton: {
+    backgroundColor: '#000000',
+    padding: 10,
+    borderRadius: 50,
+    width: 50,
+    height: 50,
+    textAlign: 'right',
+    marginRight: 60,
   },
   button: {
     backgroundColor: '#0782F9',
-    width: '80%',
+    width: '20%',
     padding: 15,
     borderRadius: 10,
     alignItems: 'center',
@@ -95,4 +154,27 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     fontSize: 16,
   },
+  userName: {
+    marginTop: 12,
+    marginBottom: 12,
+    marginRight: 20,
+  },
+  logoutButton: {
+    width: '70%',
+    marginTop: 20,
+    marginLeft: 'auto',
+    marginRight: 'auto',
+  },
+  userInfo: {
+    marginLeft: 'auto',
+    marginRight: 'auto',
+    justifyContent: 'space-around'
+  },
+  av: {
+    marginBottom: 20,
+    marginTop: 20,
+    marginLeft: 'auto',
+    marginRight: 'auto',
+  },
+
 })

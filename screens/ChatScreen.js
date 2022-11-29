@@ -9,6 +9,7 @@ import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { auth, db } from '../firebase';
 import { signOut } from 'firebase/auth';
 import { GiftedChat } from 'react-native-gifted-chat';
+import { Appbar } from 'react-native-paper';
 
 const Chat = ({ navigation }) => {
   const [messages, setMessages] = useState([]);
@@ -65,6 +66,12 @@ const Chat = ({ navigation }) => {
     );
   }, []);
   return (
+    <>
+    <Appbar
+    style={styles.header}
+    >    
+    <Appbar.Content title={'Family Group Chat'} />      
+    </Appbar>
     <GiftedChat
       messages={messages}
       showAvatarForEveryMessage={true}
@@ -75,7 +82,19 @@ const Chat = ({ navigation }) => {
         // avatar: auth?.currentUser?.photoURL
       }}
     />
+    </>
   );
 };
 
 export default Chat;
+
+const styles = StyleSheet.create({
+  header: {
+    marginTop: 60,
+    flexDirection: "row",
+    justifyContent: 'flex-end',
+    marginBottom: 10,
+    fontSize: 30,
+    backgroundColor: '#c4def6',
+  },
+})
