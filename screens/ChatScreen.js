@@ -70,7 +70,7 @@ const Chat = ({ navigation }) => {
     <Appbar
     style={styles.header}
     >    
-    <Appbar.Content title={'Family Group Chat'} />      
+    <Appbar.Content title={'FamilyName Group Chat'} />      
     </Appbar>
     <GiftedChat
       messages={messages}

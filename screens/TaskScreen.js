@@ -40,7 +40,7 @@ const TaskScreen = () => {
       <>
         <Appbar
         style={styles.header}>
-        <Appbar.Content title={'Tasks'} />
+        <Appbar.Content title={"Tim's Tasks"} />
     <Appbar.Action icon="cog-outline" onPress={navToSettings} />
         </Appbar>
         
@@ -89,7 +89,7 @@ const TaskScreen = () => {
           <Text style={styles.av}>
         <Avatar.Image
             size={130}
-            source={{ uri: 'https://reactnativecode.com/wp-content/uploads/2021/04/Rose.jpg' }} 
+            source={{ uri: 'https://scontent-msp1-1.xx.fbcdn.net/v/t39.30808-6/273873496_10106286086005355_6120426208304554129_n.jpg?_nc_cat=102&ccb=1-7&_nc_sid=09cbfe&_nc_ohc=q5432tTCbXIAX9YmUX-&_nc_ht=scontent-msp1-1.xx&oh=00_AfCQ12AZxGj389XacfKheoxe2vBz-M7Xa2ED23L68DMf_w&oe=63899248' }} 
             />          
           </Text>
             <Text>Name: Tim</Text>
