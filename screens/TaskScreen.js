@@ -42,7 +42,7 @@ const TaskScreen = () => {
     }
   };
 
-  const birthday = userDetails.birthday.toDate().toDateString()
+ //const birthday = userDetails.birthday.toDate().toDateString()
 
     
   if (!settings) {
@@ -114,7 +114,7 @@ const TaskScreen = () => {
           <Text>Name: {userDetails.name}</Text>
           <Text>E-mail: {auth.currentUser.email}</Text>
           <Text>Family ID: {userDetails.familyId}</Text>
-          <Text>Birthday: {birthday}</Text>
+          <Text>Birthday: birthday - update</Text>
           <Text>Edit Settings - Link</Text>
           <Button icon="logout" mode="contained" onPress={handleSignOut} style={styles.logoutButton}>
             Logout
