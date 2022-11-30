@@ -1,4 +1,4 @@
-import { StyleSheet, Text, View, TouchableHighlight } from 'react-native';
+import { KeyboardAvoidingView, StyleSheet, Text, View } from 'react-native';
 import React from 'react';
 import {
   Button,
@@ -7,9 +7,6 @@ import {
   TextInput,
   Divider,
 } from 'react-native-paper';
-import { db } from '../firebase';
-import { doc, setDoc } from 'firebase/firestore';
-import { auth } from '../firebase';
 
 const GroceryScreen = () => {
   const [checked, setChecked] = React.useState(false);
