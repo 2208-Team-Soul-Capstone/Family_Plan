@@ -1,14 +1,25 @@
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native'
-import React, { useState } from 'react'
-import { auth } from '../firebase';
+import React, { useState, useEffect } from 'react'
+import { auth, db } from '../firebase';
 import { useNavigation } from '@react-navigation/native';
 import { Button, Divider, SegmentedButtons, Appbar, Avatar, List } from 'react-native-paper';
+import { doc, getDoc } from "firebase/firestore";
 
 const TaskScreen = () => {
 
   // temp state for adding segmented buttons
   const [value, setValue] = React.useState('');
   const [settings, setSettings] = useState(false);
+  const [userDetails, setUserDetails] = useState([])
+  
+  useEffect(() => {
+    (async () => { 
+    const docRef = doc(db, "users", auth.currentUser.uid);
+    const docSnap = await getDoc(docRef);
+    setUserDetails(docSnap.data())
+  })() 
+  }, [])
+ 
 
   const navigation = useNavigation();
 
@@ -29,11 +40,11 @@ const TaskScreen = () => {
     else if (!settings) {
       setSettings(true)
     }
-    console.log(settings)
   };
 
+ //const birthday = userDetails.birthday.toDate().toDateString()
 
-
+    
   if (!settings) {
     return (
       <>
@@ -100,9 +111,10 @@ const TaskScreen = () => {
               source={{ uri: 'https://scontent-msp1-1.xx.fbcdn.net/v/t39.30808-6/273873496_10106286086005355_6120426208304554129_n.jpg?_nc_cat=102&ccb=1-7&_nc_sid=09cbfe&_nc_ohc=q5432tTCbXIAX9YmUX-&_nc_ht=scontent-msp1-1.xx&oh=00_AfCQ12AZxGj389XacfKheoxe2vBz-M7Xa2ED23L68DMf_w&oe=63899248' }}
             />
           </Text>
-          <Text>Name: Name</Text>
+          <Text>Name: {userDetails.name}</Text>
           <Text>E-mail: {auth.currentUser.email}</Text>
-          <Text>Family: familyname</Text>
+          <Text>Family ID: {userDetails.familyId}</Text>
+          <Text>Birthday: birthday - update</Text>
           <Text>Edit Settings - Link</Text>
           <Button icon="logout" mode="contained" onPress={handleSignOut} style={styles.logoutButton}>
             Logout
