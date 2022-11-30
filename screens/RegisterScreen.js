@@ -5,7 +5,6 @@ import { createUserWithEmailAndPassword, onAuthStateChanged, signInWithEmailAndP
 import { auth } from '../firebase';
 import { db } from '../firebase'
 import { useNavigation } from '@react-navigation/native';
-import { getLocales } from "expo-localization";
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Text } from 'react-native-paper';
 import { doc, setDoc } from "firebase/firestore"; 
