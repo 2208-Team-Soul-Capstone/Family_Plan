@@ -31,7 +31,7 @@ const Chat = ({ navigation }) => {
       'Families',
       `${userDetails.familyId}`,
       'Messages',
-    )
+    )//
     //     const potato = query(collection(doc(collection(db, 'Families'), userDetails.familyId), 'Messages'))
     // console.log('-----POTATO-----', potato)
     console.log('||||||||||||-messagesRef-|||||||||||||', messagesRef)
@@ -99,7 +99,7 @@ if (userDetails.familyId) {
         <Appbar.Content title={'FamilyName Group Chat'} />
       </Appbar>
       <GiftedChat
-        messages={messages}
+        messages={messages}  
         showAvatarForEveryMessage={true}
         renderSend={renderSend}
         alwaysShowSend
