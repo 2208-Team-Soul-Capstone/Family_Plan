@@ -6,7 +6,7 @@ import { auth } from '../firebase';
 import { db } from '../firebase'
 import { useNavigation } from '@react-navigation/native';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { Text } from 'react-native-paper';
+import { Text, Appbar } from 'react-native-paper';
 import { doc, setDoc } from "firebase/firestore"; 
 
 
@@ -18,7 +18,7 @@ const RegisterScreen = () => {
     const [password, setPassword] = useState('');
     const [fId, setFId] = useState('');
 
-    const [date, setDate] = useState(new Date(1598051730000));
+    const [date, setDate] = useState(new Date());
     const [mode, setMode] = useState('date');
     const [show, setShow] = useState(false);
     const [text, setText] = useState('No date of birth selected')
@@ -45,7 +45,8 @@ const RegisterScreen = () => {
                 return setDoc(doc(db, "users", userCredential.user.uid), {
                     name: userName,
                     familyId: fId,
-                    birthday: date
+                    birthday: date,
+                    photoURL: 'gs://familyplan-3d847.appspot.com/default_profile_pic.png'
                   });
                 const user = userCredential.user;
                 // ...
@@ -78,7 +79,18 @@ const RegisterScreen = () => {
         setShow(false);
     }
 
+
+    const navToLogin = () => {
+        navigation.replace('Login');
+    }
+
     return (
+        <>
+        <Appbar style={styles.header}>
+        <Appbar.Content title={'Register'} />  
+          <Appbar.Action icon="keyboard-backspace" onPress={navToLogin} />
+        </Appbar>
+    
         <KeyboardAvoidingView style={styles.container} behavior="padding">
             <View style={styles.inputContainer}>
                 <TextInput
@@ -94,13 +106,13 @@ const RegisterScreen = () => {
                     style={styles.input}
                 />
                 <TextInput
-                    placeholder="Password"
+                    placeholder="Password - Minimum 6 Characters"
                     value={password}
                     onChangeText={(text) => setPassword(text)}
                     style={styles.input}
                     secureTextEntry
                 />
-                <Text>If you have a Family ID, enter it below. Otherwise a new family will be created for you.</Text>
+                <Text style={styles.familyIdText}>If you have a Family ID, enter it below. If not, enter an ID to create a new family for yourself that you can share with your family.</Text>
                 <TextInput
                     placeholder="Family ID"
                     value={fId}
@@ -150,6 +162,7 @@ const RegisterScreen = () => {
 
 
         </KeyboardAvoidingView>
+        </>
     )
 }
 
@@ -161,6 +174,14 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
     },
+    header: {
+        marginTop: 60,
+        flexDirection: "row",
+        justifyContent: 'flex-end',
+        marginBottom: 10,
+        fontSize: 30,
+        backgroundColor: '#c4def6',
+      },
     inputContainer: {
         width: '80%',
     },
@@ -205,10 +226,14 @@ const styles = StyleSheet.create({
         paddingHorizontal: 15,
         paddingVertical: 10,
         borderRadius: 10,
-        marginTop: 15,
+        marginTop: 20,
     },
     birthdayButtonText: {
         color: 'gray',
         textAlign: 'center',
-    }
+    },
+    familyIdText: {
+        marginTop: 20
+    },
+
 });
