@@ -7,8 +7,6 @@ import { doc, getDoc, setDoc } from "firebase/firestore";
 import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import * as ImagePicker from 'expo-image-picker'
 
-
-
 const TaskScreen = () => {
 
   const storage = getStorage();
@@ -27,8 +25,6 @@ const TaskScreen = () => {
       await setUserDetails(docSnap.data())
     })()
   }, [])
-
- 
 
   const navigation = useNavigation();
 
