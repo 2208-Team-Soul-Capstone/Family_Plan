@@ -14,11 +14,11 @@ import {
 } from 'firebase/auth';
 import { auth } from '../firebase';
 import { useNavigation } from '@react-navigation/native';
+import { Appbar } from 'react-native-paper';
 
 const LoginScreen = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-
   const navigation = useNavigation();
 
   useEffect(() => {
@@ -40,19 +40,6 @@ const LoginScreen = () => {
   const registerScreen = () => {
     navigation.replace('Register');
   }
-  // const handleSignUp = () => {
-  //   createUserWithEmailAndPassword(auth, email, password)
-  //     .then((userCredential) => {
-  //       // Signed in
-  //       const user = userCredential.user;
-  //       // ...
-  //     })
-  //     .catch((error) => {
-  //       const errorCode = error.code;
-  //       const errorMessage = error.message;
-  //       // ..
-  //     });
-  // };
 
   const handleLogin = () => {
     signInWithEmailAndPassword(auth, email, password)
@@ -69,6 +56,10 @@ const LoginScreen = () => {
   };
 
   return (
+    <>
+        <Appbar style={styles.header}>
+    <Appbar.Content title={'Family Plan'} />  
+    </Appbar>
     <KeyboardAvoidingView style={styles.container} behavior="padding">
       <View style={styles.inputContainer}>
         <TextInput
@@ -100,6 +91,7 @@ const LoginScreen = () => {
         </TouchableOpacity>
       </View>
     </KeyboardAvoidingView>
+    </>
   );
 };
 
@@ -110,6 +102,14 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  header: {
+    marginTop: 60,
+    flexDirection: "row",
+    justifyContent: 'flex-end',
+    marginBottom: 10,
+    fontSize: 30,
+    backgroundColor: '#c4def6',
   },
   inputContainer: {
     width: '80%',

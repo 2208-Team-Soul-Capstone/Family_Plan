@@ -1,25 +1,29 @@
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native'
+import { StyleSheet, TouchableOpacity, View } from 'react-native'
 import React, { useState, useEffect } from 'react'
 import { auth, db } from '../firebase';
 import { useNavigation } from '@react-navigation/native';
-import { Button, Divider, SegmentedButtons, Appbar, Avatar, List } from 'react-native-paper';
+import { Button, Divider, SegmentedButtons, Appbar, Avatar, List, Text } from 'react-native-paper';
 import { doc, getDoc } from "firebase/firestore";
+import { getStorage, ref } from "firebase/storage";
+
 
 const TaskScreen = () => {
 
-  // temp state for adding segmented buttons
-  const [value, setValue] = React.useState('');
-  const [settings, setSettings] = useState(false);
+const storage = getStorage();
+const storageRef = ref(storage);
+
+  const [settings, setSettings] = useState(false)
   const [userDetails, setUserDetails] = useState([])
-  
+  const [taskOrWish, setTaskOrWish] = useState('task')
+  const [editProfile, setEditProfile] = useState(false)
+
   useEffect(() => {
     (async () => { 
     const docRef = doc(db, "users", auth.currentUser.uid);
     const docSnap = await getDoc(docRef);
     setUserDetails(docSnap.data())
-  })() 
+  })()
   }, [])
- 
 
   const navigation = useNavigation();
 
@@ -35,48 +39,64 @@ const TaskScreen = () => {
   const navToSettings = () => {
     if (settings) {
       setSettings(false)
-
     }
     else if (!settings) {
       setSettings(true)
     }
   };
 
- //const birthday = userDetails.birthday.toDate().toDateString()
+  const getBirthday = () => {
+    return new Date(userDetails.birthday.seconds * 1000).toLocaleDateString()
+  }
 
-    
+  const gotoEditProfile = () => {
+    setEditProfile(true)
+  }
+
+  const profileEditBack = () => {
+    setEditProfile(false)
+  }
+
+  const saveProfile = () => {
+    setEditProfile(false);
+  }
+  
   if (!settings) {
+    if (taskOrWish == 'task'){
     return (
       <>
         <Appbar
           style={styles.header}>
-          <Appbar.Content title={"Tim's Lists"} />
+          <Appbar.Content title={`${userDetails.name}'s Lists`} />
           <Appbar.Action icon="cog-outline" onPress={navToSettings} />
         </Appbar>
-
-
         <View style={styles.taskMenu}>
           <SegmentedButtons
             style={styles.segButtons}
-            value={value}
-            onValueChange={setValue}
+            value={taskOrWish}
+            onValueChange={setTaskOrWish}
             buttons={[
               {
                 value: 'task',
                 label: 'Task List',
+                showSelectedCheck: true,
               },
               {
-                value: 'wishList',
+                value: 'wish',
                 label: 'Wish List',
+                showSelectedCheck: true,
               },
             ]}
           />
-          <Text>Points: 10 of 100 for next Reward!</Text>
           <Divider />
 
         </View>
+
         <View style={styles.taskList}>
+
           <List.Section>
+          <List.Subheader>Current Points: 10 of 100 needed for reward!</List.Subheader>
+
             <List.Item title="Do the laundry"
               description="5 points"
               left={() => <List.Icon icon="checkbox-multiple-outline" />} />
@@ -94,31 +114,101 @@ const TaskScreen = () => {
         </View>
       </>
     )
-  }
-  else if (settings) {
+          }
+          else if (taskOrWish == 'wish')
     return (
       <>
+        <Appbar
+          style={styles.header}>
+          <Appbar.Content title={"Tim's Lists"} />
+          <Appbar.Action icon="cog-outline" onPress={navToSettings} />
+        </Appbar>
 
+        <View style={styles.taskMenu}>
+          <SegmentedButtons
+            style={styles.segButtons}
+            value={taskOrWish}
+            onValueChange={setTaskOrWish}
+            
+            buttons={[
+              {
+                value: 'task',
+                label: 'Task List',
+                showSelectedCheck: true,
+              },
+              {
+                value: 'wish',
+                label: 'Wish List',
+                showSelectedCheck: true,
+              },
+            ]}
+          />
+          <Divider />
+
+        </View>
+
+        <View style={styles.taskList}>
+
+          <List.Section>
+          <List.Subheader>Wish List</List.Subheader>
+
+            <List.Item title="Nerf Gun"
+              left={() => <List.Icon icon="gift-outline" />} />
+
+
+          </List.Section>
+        </View>
+      </>
+    )
+
+
+  }
+  else if (settings && !editProfile) {
+    if (userDetails.birthday.seconds){
+    return (
+      <>
         <Appbar
           style={styles.header}>
           <Appbar.Content title={'Settings'} />
           <Appbar.Action icon="keyboard-backspace" onPress={navToSettings} />
         </Appbar>
+
         <View style={styles.userInfo}>
+        <Button icon='pencil' onPress={gotoEditProfile}>Edit Photo</Button>
+
           <Text style={styles.av}>
             <Avatar.Image
               size={130}
-              source={{ uri: 'https://scontent-msp1-1.xx.fbcdn.net/v/t39.30808-6/273873496_10106286086005355_6120426208304554129_n.jpg?_nc_cat=102&ccb=1-7&_nc_sid=09cbfe&_nc_ohc=q5432tTCbXIAX9YmUX-&_nc_ht=scontent-msp1-1.xx&oh=00_AfCQ12AZxGj389XacfKheoxe2vBz-M7Xa2ED23L68DMf_w&oe=63899248' }}
+              source={{ uri: userDetails.photoURL }}
             />
           </Text>
-          <Text>Name: {userDetails.name}</Text>
-          <Text>E-mail: {auth.currentUser.email}</Text>
-          <Text>Family ID: {userDetails.familyId}</Text>
-          <Text>Birthday: birthday - update</Text>
-          <Text>Edit Settings - Link</Text>
+
+          <Text variant="titleMedium">Name: {userDetails.name} <Button icon='pencil'c></Button></Text>
+          <Text variant="titleMedium">E-mail: {auth.currentUser.email} <Button icon='pencil'c></Button></Text>
+          <Text variant="titleMedium">Family ID: {userDetails.familyId} <Button icon='pencil'c></Button></Text>
+          <Text variant="titleMedium">Birthday: {getBirthday()} <Button icon='pencil'c></Button></Text>      
+          <Divider style={{marginTop: 15}} />
           <Button icon="logout" mode="contained" onPress={handleSignOut} style={styles.logoutButton}>
             Logout
           </Button>
+        </View>
+      </>
+    )}
+  }
+  else if (settings && editProfile) {
+    return (
+      <>
+              <Appbar
+          style={styles.header}>
+          <Appbar.Content title={'Edit Photo'} />
+          <Appbar.Action icon="keyboard-backspace" onPress={profileEditBack} />
+        </Appbar>
+
+        <View style={styles.userInfo}>
+          <Button>Choose Photo</Button>
+          <Text>Or enter URL:</Text>
+          <Button></Button>
+          <Button onPress={saveProfile}  mode="contained" style={styles.logoutButton}>Save Profile</Button>
         </View>
       </>
     )
@@ -196,5 +286,4 @@ const styles = StyleSheet.create({
     marginLeft: 'auto',
     marginRight: 'auto',
   },
-
 })
