@@ -8,13 +8,13 @@ import { useFocusEffect } from '@react-navigation/native';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { auth, db } from '../firebase';
 import { GiftedChat, Send } from 'react-native-gifted-chat';
-import { Appbar, Avatar, IconButton } from 'react-native-paper';
+import { Appbar, Avatar, HelperText, IconButton } from 'react-native-paper';
 import { doc, setDoc, query, orderBy, onSnapshot, getDoc, getDocs, addDoc, collection } from 'firebase/firestore';
 
 const Chat = ({ navigation }) => {
   const [messages, setMessages] = useState([]);
   const [userDetails, setUserDetails] = useState([]);
-
+  const [sendCount, setSendCount] = useState(0);
   const uid = auth.currentUser.uid;
 
   useEffect(() => {
@@ -23,19 +23,16 @@ const Chat = ({ navigation }) => {
       const docSnap = await getDoc(docRef);
       setUserDetails(docSnap.data())
     })();
-  }, [])
-//
-  useLayoutEffect(() => {
-    const messagesRef = collection(
-      db,
-      'Families',
-      `${userDetails.familyId}`,
-      'Messages',
-    )//
-    //     const potato = query(collection(doc(collection(db, 'Families'), userDetails.familyId), 'Messages'))
-    // console.log('-----POTATO-----', potato)
-    console.log('||||||||||||-messagesRef-|||||||||||||', messagesRef)
+  }, [navigation])
 
+  let messagesRef = collection(
+    db,
+    'Families',
+    `${userDetails.familyId}`,
+    'Messages'
+  );
+
+  useLayoutEffect(() => {
     const q = query(messagesRef, orderBy('createdAt', 'desc'))
     const unsubscribe = onSnapshot(q, (snapshot) => setMessages(
       snapshot.docs.map(doc => ({
@@ -43,14 +40,13 @@ const Chat = ({ navigation }) => {
         createdAt: doc.data().createdAt.toDate(),
         text: doc.data().text,
         user: doc.data().user,
-      }))
+      })),
     ));
-    console.log('setMessages has been fired')
     return () => {
       unsubscribe();
     };
-  }, []);
-console.log('after usubscribe')
+  }, [navigation, userDetails, sendCount]);
+
 
   function renderSend(props) {
     return (
@@ -69,27 +65,24 @@ console.log('after usubscribe')
       </View>
     );
   }
-console.log(userDetails.familyId)
+
   const onSend = useCallback((messages = []) => {
-    // setMessages((previousMessages) =>
-    //   GiftedChat.append(previousMessages, messages)
-    // );
+    setSendCount(sendCount +1)
+    console.log(sendCount)
+    console.log('user details ---->', userDetails)
     const { _id, createdAt, text, user, } = messages[0]
-if (userDetails.familyId) {
-    addDoc(
-      collection(
-        doc(collection(db, 'Families'), userDetails.familyId),
+
+    addDoc(collection(doc(collection(db, 'Families'), `${userDetails.familyId}`),
         'Messages'
       ),
       {
         _id,
         createdAt,
         text,
-        user,
+        user
       }
-    )};
-  }, []);
-
+    )
+  }, [navigation, userDetails]);
 
   return (
     <>
@@ -99,8 +92,8 @@ if (userDetails.familyId) {
         <Appbar.Content title={'FamilyName Group Chat'} />
       </Appbar>
       <GiftedChat
-        messages={messages}  
-        showAvatarForEveryMessage={true}
+        messages={messages}
+        // showAvatarForEveryMessage={true}
         renderSend={renderSend}
         alwaysShowSend
         scrollToBottom
@@ -108,7 +101,7 @@ if (userDetails.familyId) {
         onSend={(messages) => onSend(messages)}
         user={{
           _id: auth?.currentUser?.email,
-          name: auth?.currentUser?.displayName,
+          name: userDetails.name,
           // avatar: "https://store.playstation.com/store/api/chihiro/00_09_000/container/US/en/99/UP0151-CUSA09971_00-AV00000000000004/0/image?_version=00_09_000&platform=chihiro&bg_color=000000&opacity=100&w=720&h=720",
         }}
       />
