@@ -3,32 +3,27 @@ import React, { useState, useEffect } from 'react'
 import { auth, db } from '../firebase';
 import { useNavigation } from '@react-navigation/native';
 import { Button, Divider, SegmentedButtons, Appbar, Avatar, List, Text } from 'react-native-paper';
-import { doc, getDoc, setDoc } from "firebase/firestore";
+import { doc, getDoc, setDoc, userDetails } from "firebase/firestore";
 import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import * as ImagePicker from 'expo-image-picker'
 
-
-
 const TaskScreen = () => {
-
   const storage = getStorage();
-
-  const [settings, setSettings] = useState(false)
-  const [userDetails, setUserDetails] = useState([])
-  const [taskOrWish, setTaskOrWish] = useState('task')
-  const [editProfile, setEditProfile] = useState(false)
-  const [profilePic, setProfilePic] = useState(null) 
-  const [imageUpload, setImageUpload] = useState(null);
 
   useEffect(() => {
     (async () => {
       const docRef = doc(db, "users", auth.currentUser.uid);
       const docSnap = await getDoc(docRef);
-      await setUserDetails(docSnap.data())
-    })()
+      setUserDetails(docSnap.data())
+      })()
   }, [])
 
- 
+  const [settings, setSettings] = useState(false)
+  const [userDetails, setUserDetails] = useState([])
+  const [taskOrWish, setTaskOrWish] = useState('task')
+  const [editProfile, setEditProfile] = useState(false)
+  const [imageUpload, setImageUpload] = useState(null);
+  const [profilePic, setProfilePic] = useState(null)
 
   const navigation = useNavigation();
 
@@ -63,8 +58,6 @@ const TaskScreen = () => {
     setEditProfile(false)
   }
 
- 
-
   const uploadFile = async () => {
     const response = await fetch(imageUpload)
     const blob = await response.blob();
@@ -74,8 +67,9 @@ const TaskScreen = () => {
       getDownloadURL(snapshot.ref).then((url) => {
         setDoc(doc(db, "users", auth.currentUser.uid), {
           photoURL: url,
-        }, {merge: true});
-        setProfilePic(imageUpload)
+        }, {merge: true}).then(() => {
+          setProfilePic(imageUpload)
+        })
         setImageUpload(null)
         setEditProfile(false);
       });
@@ -89,9 +83,27 @@ const TaskScreen = () => {
       aspect: [4,3],
     })
 
-    await setImageUpload(result.assets[0].uri)
+    if (!result.canceled) {
+      setImageUpload(result.assets[0].uri);
+    }
+  }
 
-    console.log(imageUpload)
+  const ProPick = () => {
+    if (profilePic) {
+      return <Text style={styles.av}>
+        <Avatar.Image
+          size={170}
+          source={{ uri: profilePic }}
+        />
+      </Text>
+    } else {
+      return <Text style={styles.av}>
+        <Avatar.Image
+          size={170}
+          source={{ uri: userDetails.photoURL }}
+        />
+      </Text>
+    }
   }
 
   if (!settings) {
@@ -207,12 +219,7 @@ const TaskScreen = () => {
           <View style={styles.userInfo}>
             <Button icon='pencil' onPress={gotoEditProfile}>Change Photo</Button>
 
-            <Text style={styles.av}>
-              <Avatar.Image
-                size={170}
-                source={{ uri: userDetails.photoURL }}
-              />
-            </Text>
+            <ProPick/>
 
             <Text variant="titleMedium">Name: {userDetails.name} <Button icon='pencil' c></Button></Text>
             <Text variant="titleMedium">E-mail: {auth.currentUser.email} <Button icon='pencil' c></Button></Text>
