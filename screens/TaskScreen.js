@@ -1,29 +1,34 @@
-import { StyleSheet, TouchableOpacity, View } from 'react-native'
+import { StyleSheet, TouchableOpacity, View, Image } from 'react-native'
 import React, { useState, useEffect } from 'react'
 import { auth, db } from '../firebase';
 import { useNavigation } from '@react-navigation/native';
 import { Button, Divider, SegmentedButtons, Appbar, Avatar, List, Text } from 'react-native-paper';
-import { doc, getDoc } from "firebase/firestore";
-import { getStorage, ref } from "firebase/storage";
+import { doc, getDoc, setDoc } from "firebase/firestore";
+import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import * as ImagePicker from 'expo-image-picker'
+
 
 
 const TaskScreen = () => {
 
-const storage = getStorage();
-const storageRef = ref(storage);
+  const storage = getStorage();
 
   const [settings, setSettings] = useState(false)
   const [userDetails, setUserDetails] = useState([])
   const [taskOrWish, setTaskOrWish] = useState('task')
   const [editProfile, setEditProfile] = useState(false)
+  const [profilePic, setProfilePic] = useState(null) 
+  const [imageUpload, setImageUpload] = useState(null);
 
   useEffect(() => {
-    (async () => { 
-    const docRef = doc(db, "users", auth.currentUser.uid);
-    const docSnap = await getDoc(docRef);
-    setUserDetails(docSnap.data())
-  })()
+    (async () => {
+      const docRef = doc(db, "users", auth.currentUser.uid);
+      const docSnap = await getDoc(docRef);
+      await setUserDetails(docSnap.data())
+    })()
   }, [])
+
+ 
 
   const navigation = useNavigation();
 
@@ -54,161 +59,191 @@ const storageRef = ref(storage);
   }
 
   const profileEditBack = () => {
+    setImageUpload(userDetails.photoURL)
     setEditProfile(false)
   }
 
-  const saveProfile = () => {
-    setEditProfile(false);
+ 
+
+  const uploadFile = async () => {
+    const response = await fetch(imageUpload)
+    const blob = await response.blob();
+    const filename = imageUpload.substring(imageUpload.lastIndexOf('/')+1)
+    const imageRef = ref(storage, filename);
+    uploadBytes(imageRef, blob).then((snapshot) => {
+      getDownloadURL(snapshot.ref).then((url) => {
+        setDoc(doc(db, "users", auth.currentUser.uid), {
+          photoURL: url,
+        }, {merge: true});
+        setProfilePic(imageUpload)
+        setImageUpload(null)
+        setEditProfile(false);
+      });
+    });
+  };
+
+  const pickImage = async () => {
+    let result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Image,
+      allowsEditing: true,
+      aspect: [4,3],
+    })
+
+    await setImageUpload(result.assets[0].uri)
+
+    console.log(imageUpload)
   }
-  
+
   if (!settings) {
-    if (taskOrWish == 'task'){
-    return (
-      <>
-        <Appbar
-          style={styles.header}>
-          <Appbar.Content title={`${userDetails.name}'s Lists`} />
-          <Appbar.Action icon="cog-outline" onPress={navToSettings} />
-        </Appbar>
-        <View style={styles.taskMenu}>
-          <SegmentedButtons
-            style={styles.segButtons}
-            value={taskOrWish}
-            onValueChange={setTaskOrWish}
-            buttons={[
-              {
-                value: 'task',
-                label: 'Task List',
-                showSelectedCheck: true,
-              },
-              {
-                value: 'wish',
-                label: 'Wish List',
-                showSelectedCheck: true,
-              },
-            ]}
-          />
-          <Divider />
+    if (taskOrWish == 'task') {
+      return (
+        <>
+          <Appbar
+            style={styles.header}>
+            <Appbar.Content title={`${userDetails.name}'s Lists`} />
+            <Appbar.Action icon="cog-outline" onPress={navToSettings} />
+          </Appbar>
+          <View style={styles.taskMenu}>
+            <SegmentedButtons
+              style={styles.segButtons}
+              value={taskOrWish}
+              onValueChange={setTaskOrWish}
+              buttons={[
+                {
+                  value: 'task',
+                  label: 'Task List',
+                  showSelectedCheck: true,
+                },
+                {
+                  value: 'wish',
+                  label: 'Wish List',
+                  showSelectedCheck: true,
+                },
+              ]}
+            />
+            <Divider />
 
-        </View>
+          </View>
 
-        <View style={styles.taskList}>
+          <View style={styles.taskList}>
 
-          <List.Section>
-          <List.Subheader>Current Points: 10 of 100 needed for reward!</List.Subheader>
+            <List.Section>
+              <List.Subheader>Current Points: 10 of 100 needed for reward!</List.Subheader>
 
-            <List.Item title="Do the laundry"
-              description="5 points"
-              left={() => <List.Icon icon="checkbox-multiple-outline" />} />
-            <List.Item title="Clean room"
-              description="5 points"
-              left={() => <List.Icon icon="checkbox-multiple-outline" />} />
-            <List.Item title="Finish Science Project"
-              description="10 points"
-              left={() => <List.Icon icon="checkbox-multiple-outline" />} />
-            <List.Item title="Take dog for walk"
-              description="3 points"
-              left={() => <List.Icon icon="checkbox-multiple-outline" />} />
+              <List.Item title="Do the laundry"
+                description="5 points"
+                left={() => <List.Icon icon="checkbox-multiple-outline" />} />
+              <List.Item title="Clean room"
+                description="5 points"
+                left={() => <List.Icon icon="checkbox-multiple-outline" />} />
+              <List.Item title="Finish Science Project"
+                description="10 points"
+                left={() => <List.Icon icon="checkbox-multiple-outline" />} />
+              <List.Item title="Take dog for walk"
+                description="3 points"
+                left={() => <List.Icon icon="checkbox-multiple-outline" />} />
 
-          </List.Section>
-        </View>
-      </>
-    )
-          }
-          else if (taskOrWish == 'wish')
-    return (
-      <>
-        <Appbar
-          style={styles.header}>
-          <Appbar.Content title={"Tim's Lists"} />
-          <Appbar.Action icon="cog-outline" onPress={navToSettings} />
-        </Appbar>
+            </List.Section>
+          </View>
+        </>
+      )
+    }
+    else if (taskOrWish == 'wish')
+      return (
+        <>
+          <Appbar
+            style={styles.header}>
+            <Appbar.Content title={"Tim's Lists"} />
+            <Appbar.Action icon="cog-outline" onPress={navToSettings} />
+          </Appbar>
 
-        <View style={styles.taskMenu}>
-          <SegmentedButtons
-            style={styles.segButtons}
-            value={taskOrWish}
-            onValueChange={setTaskOrWish}
-            
-            buttons={[
-              {
-                value: 'task',
-                label: 'Task List',
-                showSelectedCheck: true,
-              },
-              {
-                value: 'wish',
-                label: 'Wish List',
-                showSelectedCheck: true,
-              },
-            ]}
-          />
-          <Divider />
+          <View style={styles.taskMenu}>
+            <SegmentedButtons
+              style={styles.segButtons}
+              value={taskOrWish}
+              onValueChange={setTaskOrWish}
 
-        </View>
+              buttons={[
+                {
+                  value: 'task',
+                  label: 'Task List',
+                  showSelectedCheck: true,
+                },
+                {
+                  value: 'wish',
+                  label: 'Wish List',
+                  showSelectedCheck: true,
+                },
+              ]}
+            />
+            <Divider />
 
-        <View style={styles.taskList}>
+          </View>
 
-          <List.Section>
-          <List.Subheader>Wish List</List.Subheader>
+          <View style={styles.taskList}>
 
-            <List.Item title="Nerf Gun"
-              left={() => <List.Icon icon="gift-outline" />} />
+            <List.Section>
+              <List.Subheader>Wish List</List.Subheader>
 
-
-          </List.Section>
-        </View>
-      </>
-    )
+              <List.Item title="Nerf Gun"
+                left={() => <List.Icon icon="gift-outline" />} />
+            </List.Section>
+          </View>
+        </>
+      )
 
 
   }
   else if (settings && !editProfile) {
-    if (userDetails.birthday.seconds){
-    return (
-      <>
-        <Appbar
-          style={styles.header}>
-          <Appbar.Content title={'Settings'} />
-          <Appbar.Action icon="keyboard-backspace" onPress={navToSettings} />
-        </Appbar>
+    if (userDetails.birthday.seconds) {
+      return (
+        <>
+          <Appbar
+            style={styles.header}>
+            <Appbar.Content title={'Settings'} />
+            <Appbar.Action icon="keyboard-backspace" onPress={navToSettings} />
+          </Appbar>
 
-        <View style={styles.userInfo}>
-        <Button icon='pencil' onPress={gotoEditProfile}>Edit Photo</Button>
+          <View style={styles.userInfo}>
+            <Button icon='pencil' onPress={gotoEditProfile}>Change Photo</Button>
 
-          <Text style={styles.av}>
-            <Avatar.Image
-              size={130}
-              source={{ uri: userDetails.photoURL }}
-            />
-          </Text>
+            <Text style={styles.av}>
+              <Avatar.Image
+                size={170}
+                source={{ uri: userDetails.photoURL }}
+              />
+            </Text>
 
-          <Text variant="titleMedium">Name: {userDetails.name} <Button icon='pencil'c></Button></Text>
-          <Text variant="titleMedium">E-mail: {auth.currentUser.email} <Button icon='pencil'c></Button></Text>
-          <Text variant="titleMedium">Family ID: {userDetails.familyId} <Button icon='pencil'c></Button></Text>
-          <Text variant="titleMedium">Birthday: {getBirthday()} <Button icon='pencil'c></Button></Text>      
-          <Divider style={{marginTop: 15}} />
-          <Button icon="logout" mode="contained" onPress={handleSignOut} style={styles.logoutButton}>
-            Logout
-          </Button>
-        </View>
-      </>
-    )}
+            <Text variant="titleMedium">Name: {userDetails.name} <Button icon='pencil' c></Button></Text>
+            <Text variant="titleMedium">E-mail: {auth.currentUser.email} <Button icon='pencil' c></Button></Text>
+            <Text variant="titleMedium">Family ID: {userDetails.familyId} <Button icon='pencil' c></Button></Text>
+            <Text variant="titleMedium">Birthday: {getBirthday()} <Button icon='pencil' c></Button></Text>
+            <Divider style={{ marginTop: 15 }} />
+            <Button icon="logout" mode="contained" onPress={handleSignOut} style={styles.logoutButton}>
+              Logout
+            </Button>
+          </View>
+        </>
+      )
+    }
   }
   else if (settings && editProfile) {
     return (
       <>
-              <Appbar
+        <Appbar
           style={styles.header}>
           <Appbar.Content title={'Edit Photo'} />
           <Appbar.Action icon="keyboard-backspace" onPress={profileEditBack} />
         </Appbar>
 
         <View style={styles.userInfo}>
-          <Button>Choose Photo</Button>
-          <Text>Or enter URL:</Text>
-          <Button></Button>
-          <Button onPress={saveProfile}  mode="contained" style={styles.logoutButton}>Save Profile</Button>
+          <Button onPress={pickImage}> Choose a New Photo </Button>
+          {imageUpload && <Avatar.Image
+            size={170}
+            source={{ uri: imageUpload }}
+            style={styles.av}
+          />}
+          <Button onPress={uploadFile} mode="contained" style={styles.saveButton}>Update Photo</Button>
         </View>
       </>
     )
@@ -271,6 +306,12 @@ const styles = StyleSheet.create({
   },
   logoutButton: {
     width: '70%',
+    marginTop: 20,
+    marginLeft: 'auto',
+    marginRight: 'auto',
+  },
+  saveButton: {
+    width: 170,
     marginTop: 20,
     marginLeft: 'auto',
     marginRight: 'auto',
