@@ -9,7 +9,17 @@ import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { auth, db } from '../firebase';
 import { GiftedChat, Send } from 'react-native-gifted-chat';
 import { Appbar, Avatar, HelperText, IconButton } from 'react-native-paper';
-import { doc, setDoc, query, orderBy, onSnapshot, getDoc, getDocs, addDoc, collection } from 'firebase/firestore';
+import {
+  doc,
+  setDoc,
+  query,
+  orderBy,
+  onSnapshot,
+  getDoc,
+  getDocs,
+  addDoc,
+  collection,
+} from 'firebase/firestore';
 
 const Chat = ({ navigation }) => {
   const [messages, setMessages] = useState([]);
@@ -21,9 +31,9 @@ const Chat = ({ navigation }) => {
     (async () => {
       const docRef = doc(db, 'users', uid);
       const docSnap = await getDoc(docRef);
-      setUserDetails(docSnap.data())
+      setUserDetails(docSnap.data());
     })();
-  }, [navigation])
+  }, [navigation]);
 
   let messagesRef = collection(
     db,
@@ -33,26 +43,27 @@ const Chat = ({ navigation }) => {
   );
 
   useLayoutEffect(() => {
-    const q = query(messagesRef, orderBy('createdAt', 'desc'))
-    const unsubscribe = onSnapshot(q, (snapshot) => setMessages(
-      snapshot.docs.map(doc => ({
-        _id: doc.data()._id,
-        createdAt: doc.data().createdAt.toDate(),
-        text: doc.data().text,
-        user: doc.data().user,
-      })),
-    ));
+    const q = query(messagesRef, orderBy('createdAt', 'desc'));
+    const unsubscribe = onSnapshot(q, (snapshot) =>
+      setMessages(
+        snapshot.docs.map((doc) => ({
+          _id: doc.data()._id,
+          createdAt: doc.data().createdAt.toDate(),
+          text: doc.data().text,
+          user: doc.data().user,
+        }))
+      )
+    );
     return () => {
       unsubscribe();
     };
   }, [navigation, userDetails, sendCount]);
 
-
   function renderSend(props) {
     return (
       <Send {...props}>
         <View style={styles.sendingContainer}>
-          <IconButton icon='send-circle' size={32} color='#6646ee' />
+          <IconButton icon="send-circle" size={32} color="#6646ee" />
         </View>
       </Send>
     );
@@ -61,34 +72,37 @@ const Chat = ({ navigation }) => {
   function scrollToBottomComponent() {
     return (
       <View style={styles.bottomComponentContainer}>
-        <IconButton icon='chevron-double-down' size={36} color='#6646ee' />
+        <IconButton icon="chevron-double-down" size={36} color="#6646ee" />
       </View>
     );
   }
 
-  const onSend = useCallback((messages = []) => {
-    setSendCount(sendCount +1)
-    console.log(sendCount)
-    console.log('user details ---->', userDetails)
-    const { _id, createdAt, text, user, } = messages[0]
+  const onSend = useCallback(
+    (messages = []) => {
+      setSendCount(sendCount + 1);
+      console.log(sendCount);
+      console.log('user details ---->', userDetails);
+      const { _id, createdAt, text, user } = messages[0];
 
-    addDoc(collection(doc(collection(db, 'Families'), `${userDetails.familyId}`),
-        'Messages'
-      ),
-      {
-        _id,
-        createdAt,
-        text,
-        user
-      }
-    )
-  }, [navigation, userDetails]);
+      addDoc(
+        collection(
+          doc(collection(db, 'Families'), `${userDetails.familyId}`),
+          'Messages'
+        ),
+        {
+          _id,
+          createdAt,
+          text,
+          user,
+        }
+      );
+    },
+    [navigation, userDetails]
+  );
 
   return (
     <>
-      <Appbar
-        style={styles.header}
-      >
+      <Appbar style={styles.header}>
         <Appbar.Content title={'FamilyName Group Chat'} />
       </Appbar>
       <GiftedChat
@@ -114,7 +128,7 @@ export default Chat;
 const styles = StyleSheet.create({
   header: {
     marginTop: 60,
-    flexDirection: "row",
+    flexDirection: 'row',
     justifyContent: 'flex-end',
     marginBottom: 10,
     fontSize: 30,
@@ -122,10 +136,9 @@ const styles = StyleSheet.create({
   },
   sendingContainer: {
     justifyContent: 'center',
-
   },
   bottomComponentContainer: {
     justifyContent: 'center',
-    alignItems: 'center'
+    alignItems: 'center',
   },
-})
+});

@@ -13,7 +13,6 @@ const ChatRoute = () => <ChatScreen />;
 
 const CalendarRoute = () => <CalendarScreen />;
 
-
 const BottomNav = () => {
   const [index, setIndex] = React.useState(0);
   const [routes] = React.useState([
@@ -41,7 +40,6 @@ const BottomNav = () => {
       focusedIcon: 'calendar-account',
       unfocusedIcon: 'calendar-account-outline',
     },
-
   ]);
 
   const renderScene = BottomNavigation.SceneMap({
