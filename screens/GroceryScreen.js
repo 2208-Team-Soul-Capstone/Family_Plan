@@ -1,28 +1,29 @@
-import { StyleSheet, Text, View, TouchableHighlight } from 'react-native';
-import React, { useState, useEffect } from 'react';
+import { StyleSheet, Text, View, ScrollView } from 'react-native';
+import React, { useState, useEffect, memo } from 'react';
 import {
   Button,
   Appbar,
-  Checkbox,
   TextInput,
   Divider,
+  Avatar,
+  Checkbox,
 } from 'react-native-paper';
 import { auth, db } from '../firebase';
 import {
   doc,
-  setDoc,
   getDoc,
-  addDoc,
   collection,
   onSnapshot,
-  getDocs,
+  deleteDoc,
+  setDoc,
 } from 'firebase/firestore';
 
 const GroceryScreen = () => {
-  const [checked, setChecked] = React.useState(false);
-  const [grocery, setGrocery] = React.useState('');
-  const [userDetails, setUserDetails] = React.useState([]);
-  const [items, setItems] = React.useState([]);
+  // will add checkbox later
+  // const [checked, setChecked] = useState({});
+  const [grocery, setGrocery] = useState('');
+  const [userDetails, setUserDetails] = useState([]);
+  const [items, setItems] = useState([]);
 
   useEffect(() => {
     (async () => {
@@ -32,8 +33,6 @@ const GroceryScreen = () => {
     })();
   }, []);
 
-  // const readDB = () => {
-  // console.log('click');
   let collectionRef = collection(
     db,
     'Families',
@@ -44,64 +43,44 @@ const GroceryScreen = () => {
   onSnapshot(collectionRef, (querySnapshot) => {
     let newItems = [];
     querySnapshot.docs.forEach((doc) => {
-      newItems.push(doc.data().item);
+      let newHold = [];
+      newHold.push(
+        doc.data().item,
+        doc.data().name,
+        doc.data().userId,
+        doc.data().photoURL,
+        doc.data().documentId,
+        doc.data().familyId
+      );
+      newItems.push(newHold);
     });
-    console.log('please no loop');
-    helper(newItems);
-  });
-
-  /** THINGS TO TRY
-   
-      do a length check for both arrays
-      sate v. db
-      one time read option (some fb method)
-
-  */
-
-  const helper = (newItems) => {
-    console.log('please no loop v2');
     if (newItems.length !== items.length) {
       setItems(newItems);
     }
-  };
+  });
 
-  // console.log();
-
-  // };
-  // console.log('testa', readDB());
-
-  // useEffect(() => {
-  //   let collectionRef = collection(
-  //     db,
-  //     'Families',
-  //     `${userDetails.familyId}`,
-  //     'Grocery List'
-  //   );
-
-  //   onSnapshot(collectionRef, (querySnapshot) => {
-  //     querySnapshot.forEach((doc) => {
-  //       // test2.push(doc.data().item);
-  //       console.log(doc.data().item);
-  //     });
-  //   });
-
-  // }, [items]);
-
-  const handleSubmit = () => {
-    addDoc(
+  const handleSubmit = async () => {
+    const newDocRef = doc(
       collection(
         doc(collection(db, 'Families'), userDetails.familyId),
         'Grocery List'
-      ),
-      {
-        name: userDetails.name,
-        userId: auth.currentUser.uid,
-        familyId: userDetails.familyId,
-        item: grocery,
-      }
+      )
     );
-    // if we do unsub here we have to resub
-    // console.log('readDB func', readDB());
+
+    await setDoc(newDocRef, {
+      familyId: userDetails.familyId,
+      userId: auth.currentUser.uid,
+      documentId: newDocRef.id,
+      name: userDetails.name,
+      item: grocery,
+      photoURL: userDetails.photoURL,
+    });
+
+    setGrocery('');
+  };
+
+  const handleRemove = async (docId, familyId) => {
+    deleteDoc(doc(db, 'Families', familyId, 'Grocery List', docId));
   };
 
   return (
@@ -110,39 +89,47 @@ const GroceryScreen = () => {
         <Appbar.Content title={'Family Grocery List'} />
       </Appbar>
 
-      <View>
-        {items.map((item) => {
+      <ScrollView style={{ paddingBottom: 55 }}>
+        {items.map((item, key) => {
           return (
-            <>
-              <Checkbox.Item
-                label={item}
-                color="green"
-                status={checked ? 'checked' : 'unchecked'}
-                onPress={() => {
-                  setChecked(!checked);
-                }}
-              />
+            <ScrollView key={key}>
+              <View style={styles.mainRow}>
+                <View style={styles.userRow}>
+                  <View style={styles.userInfo}>
+                    <Avatar.Image size={40} source={{ uri: item[3] }} />
+                    <Text>{item[1]}</Text>
+                  </View>
+                  <Text>{item[0]}</Text>
+                </View>
+                <Button
+                  icon="cart-remove"
+                  style={styles.button}
+                  mode="text"
+                  onPress={() => {
+                    handleRemove(item[4], item[5]);
+                  }}
+                ></Button>
+              </View>
               <Divider />
-            </>
+            </ScrollView>
           );
         })}
-      </View>
+      </ScrollView>
       <View style={styles.addGrocery}>
         <TextInput
+          style={styles.keyboard}
+          // removeClippedSubviews={false}
           label="Add Grocery Item"
           value={grocery}
           onChangeText={(grocery) => setGrocery(grocery)}
           onSubmitEditing={handleSubmit}
         />
-        {/* <TouchableHighlight onPress={readDB}>
-          <Text>TEST BUTTON</Text>
-        </TouchableHighlight> */}
       </View>
     </>
   );
 };
 
-export default GroceryScreen;
+export default memo(GroceryScreen);
 
 const styles = StyleSheet.create({
   header: {
@@ -156,5 +143,30 @@ const styles = StyleSheet.create({
   addGrocery: {
     flex: 1,
     justifyContent: 'flex-end',
+    paddingBottom: 55,
+  },
+  userInfo: {
+    paddingBottom: 10,
+    paddingTop: 15,
+    width: 90,
+  },
+  userRow: {
+    paddingLeft: 10,
+    display: 'flex',
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  mainRow: {
+    display: 'flex',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  button: {
+    display: 'flex',
+    justifyContent: 'center',
+  },
+  keyboard: {
+    position: 'absolute',
+    width: '100%',
   },
 });
