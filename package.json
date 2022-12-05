@@ -8,6 +8,7 @@
     "web": "expo start --web"
   },
   "dependencies": {
+    "@react-native-community/checkbox": "^0.5.14",
     "@react-native-community/datetimepicker": "6.5.2",
     "@react-native-community/masked-view": "^0.1.11",
     "@react-native-firebase/app": "^16.4.6",
