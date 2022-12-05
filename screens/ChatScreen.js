@@ -2,35 +2,31 @@ import React, {
   useEffect,
   useCallback,
   useState,
-  useLayoutEffect,
 } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Appbar, IconButton } from 'react-native-paper';
-import { Bubble, GiftedChat, Send } from 'react-native-gifted-chat';
+import { Bubble, GiftedChat, Send, isSameUser, isSameDay } from 'react-native-gifted-chat';
 import { auth, db } from '../firebase';
-import { 
-  doc, 
-  query, 
-  orderBy, 
-  onSnapshot, 
-  getDoc, 
-  addDoc, 
-  collection 
+import {
+  doc,
+  query,
+  orderBy,
+  onSnapshot,
+  getDoc,
+  addDoc,
+  collection
 } from 'firebase/firestore';
 
 const Chat = ({ navigation }) => {
   const [messages, setMessages] = useState([]);
   const [userDetails, setUserDetails] = useState([]);
-  const [userId, setUserId] = useState([]);
   const uid = auth.currentUser.uid;
-const [gMessages, setGmessages] = useState([]);
 
   useEffect(() => {
     (async () => {
       const docRef = doc(db, 'users', uid);
       const docSnap = await getDoc(docRef);
       setUserDetails(docSnap.data());
-      setUserId(uid)
     })();
   }, [navigation])
 
@@ -41,21 +37,21 @@ const [gMessages, setGmessages] = useState([]);
     'Messages'
   );
 
-  useLayoutEffect(() => {
+  useEffect(() => {
     const q = query(messagesRef, orderBy('createdAt', 'desc'))
-    const unsubscribe = onSnapshot(q, (snapshot) => setMessages(
-      snapshot.docs.map(doc => ({
-        _id: doc.data()._id,
-        createdAt: doc.data().createdAt.toDate(),
-        text: doc.data().text,
-        user: doc.data().user,
-      })),
-    ));
+    const unsubscribe = onSnapshot(q, (snapshot) =>
+      setMessages(
+        snapshot.docs.map(doc => ({
+          _id: doc.data()._id,
+          createdAt: doc.data().createdAt.toDate(),
+          text: doc.data().text,
+          user: doc.data().user,
+        })),
+      ));
     return () => {
       unsubscribe();
     };
   }, [navigation, userDetails]);
-
 
   function renderSend(props) {
     return (
@@ -67,28 +63,26 @@ const [gMessages, setGmessages] = useState([]);
     );
   }
 
-  function renderName(props) {
-    const { user = {} } = props.currentMessage
-    const { prevMessUser = {} } = props.previousMessage
-    const isSelf = user._id === uid
-    const isSame =  user._id === prevMessUser._id
-    return isSelf || isSame ? (
-      <View />
-    ) : (
-      <Text
-        style={[isSelf ? styles.selfUser : styles.otherUser]}>
-        {user.name}
-      </Text>
-    )
-  }
-
   function renderBubble(props) {
+    const { user = {} } = props.currentMessage
+    const isSelf = user._id === uid
+    if (isSameUser(props.currentMessage, props.previousMessage)
+      && isSameDay(props.currentMessage, props.previousMessage)
+      || isSelf) {
+      return (
+        <Bubble
+          {...props}
+        />
+      );
+    }
     return (
       <View>
-        {renderName(props)}
-        <Bubble {...props} />
+        <Text style={styles.name}>{props.currentMessage.user.name}</Text>
+        <Bubble
+          {...props}
+        />
       </View>
-    )
+    );
   }
 
   function scrollToBottomComponent() {
@@ -111,8 +105,7 @@ const [gMessages, setGmessages] = useState([]);
         user
       }
     )
-    console.log('USER DETAILS ---->', user._id)
-  }, [navigation, userDetails]);
+  }, [userDetails]);
   return (
     <>
       <Appbar.Header
@@ -122,6 +115,7 @@ const [gMessages, setGmessages] = useState([]);
       </Appbar.Header>
       <GiftedChat
         messages={messages}
+        showAvatarForEveryMessage
         renderBubble={renderBubble}
         renderSend={renderSend}
         alwaysShowSend
@@ -149,7 +143,6 @@ const styles = StyleSheet.create({
   },
   sendingContainer: {
     justifyContent: 'center',
-
   },
   bottomComponentContainer: {
     justifyContent: 'center',
