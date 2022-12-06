@@ -6,7 +6,7 @@ import { auth } from '../firebase';
 import { db } from '../firebase'
 import { useNavigation } from '@react-navigation/native';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { Text, Appbar } from 'react-native-paper';
+import { Text, Appbar, Checkbox } from 'react-native-paper';
 import { doc, setDoc } from "firebase/firestore"; 
 
 
@@ -17,13 +17,14 @@ const RegisterScreen = () => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [fId, setFId] = useState('');
-    const [accountType, setAccountType] = useState('')
+    const [accountType, setAccountType] = useState('child')
 
     const [date, setDate] = useState(new Date());
     const [mode, setMode] = useState('date');
     const [show, setShow] = useState(false);
     const [text, setText] = useState('No date of birth selected')
-
+    const [checked, setChecked] = useState(false);
+   
 
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, (user) => {
@@ -117,6 +118,16 @@ const RegisterScreen = () => {
                     style={styles.input}
                     secureTextEntry
                 />
+                <View style={{ flexDirection:'row', alignItems:'center'}}>
+                <Checkbox.Android
+                    status={checked ? 'checked' : 'unchecked'}
+                    onPress={() => {
+                        setChecked(!checked),
+                        checked ? setAccountType('child') : setAccountType('parent')
+                    }}
+                />
+                <Text style={{textAlign: 'center'}}>Please check this box if you are a parent.</Text>
+                </View>
                 <Text style={styles.familyIdText}>If you have a Family ID, enter it below. If not, enter an ID to create a new family for yourself that you can share with your family.</Text>
                 <TextInput
                     placeholder="Family ID"
@@ -240,5 +251,5 @@ const styles = StyleSheet.create({
     familyIdText: {
         marginTop: 20
     },
-
+    
 });
