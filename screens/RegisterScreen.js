@@ -79,7 +79,7 @@ const RegisterScreen = () => {
         setShow(false);
     }
 
-
+// Test
     const navToLogin = () => {
         navigation.replace('Login');
     }
