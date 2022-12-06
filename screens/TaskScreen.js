@@ -1,10 +1,16 @@
-import { StyleSheet, TouchableOpacity, View, Image, TextInput, Keyboard } from 'react-native'
-import React, { useState, useEffect } from 'react'
+import { StyleSheet, View, TextInput, Keyboard, Modal, ScrollView } from 'react-native'
+import React, { useState, useEffect, useLayoutEffect } from 'react'
 import { auth, db } from '../firebase';
 import { useNavigation } from '@react-navigation/native';
 import { Button, Divider, SegmentedButtons, Appbar, Avatar, List, Text, Snackbar } from 'react-native-paper';
-import { doc, getDoc, setDoc, userDetails } from "firebase/firestore";
-import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import {
+  doc,
+  getDoc,
+  collection,
+  onSnapshot,
+  deleteDoc,
+  setDoc,
+} from 'firebase/firestore';import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import * as ImagePicker from 'expo-image-picker'
 import * as EmailValidator from 'email-validator';
 
@@ -13,6 +19,10 @@ const TaskScreen = () => {
 
   // get firebase storage
   const storage = getStorage();
+
+  // tasks ref
+
+
 
   // take the auth uid to bring in the user details object from firestore
   useEffect(() => {
@@ -23,6 +33,21 @@ const TaskScreen = () => {
     })()
   }, [])
 
+useLayoutEffect(() => {
+  const tasksRef = collection(db, 'users', `${auth.currentUser.uid}`, 'Tasks')
+
+  onSnapshot(tasksRef, (snapshot) => {
+    let allTasks = []
+    snapshot.docs.forEach((doc) => {
+      allTasks.push({...doc.data(), id: doc.id})
+    })
+    console.log('hi')
+    setTasks(allTasks)
+    
+  })
+}, [])
+
+
   // state variables
   const [settings, setSettings] = useState(false)
   const [userDetails, setUserDetails] = useState([])
@@ -30,21 +55,36 @@ const TaskScreen = () => {
   const [editProfile, setEditProfile] = useState(false)
   const [imageUpload, setImageUpload] = useState(null);
   const [profilePic, setProfilePic] = useState(null)
+
   const [userName, setUserName] = useState(null);
   const [email, setEmail] = useState(null)
   const [fId, setFId] = useState(null)
+
+  // for updating state after updating profile settings
   const [currentName, setCurrentName] = useState(null)
   const [currentEmail, setCurrentEmail] = useState(null)
   const [currentFId, setCurrentFId] = useState(null)
+
+  // for snacks to appear when editing profile
   const [nameVisible, setNameVisible] = useState(false);
   const [emailErrorVisible, setEmailErrorVisible] = useState(false)
   const [emailVisible, setEmailVisible] = useState(false);
   const [fIdVisible, setFIdVisible] = useState(false);
   const [photoOrUser, setPhotoOrUser] = useState('photo')
 
-
+  // add task states
+  const [modalVisible, setModalVisible] = useState(false)
+  const [newTaskName, setNewTaskName] = useState(null)
+  const [newTaskDescription, setNewTaskDescription] = useState(null)
+  const [newTaskPoints, setNewTaskPoints] = useState(null)
+  const [addTaskSnack, setAddTaskSnack] = useState(false)
+  const [tasks, setTasks] = useState([])
 
   const navigation = useNavigation();
+
+  // get tasks and listen 
+
+
 
   // logout of firebase auth
   const handleSignOut = () => {
@@ -55,6 +95,36 @@ const TaskScreen = () => {
       })
       .catch((error) => alert(error.message));
   };
+
+
+  const addTask = async () => {
+
+    if (newTaskName !== null && newTaskDescription !== null && newTaskPoints !== null){
+    const newDocRef = doc(
+      collection(
+        doc(collection(db, 'users'), auth.currentUser.uid),
+        'Tasks'
+      )
+    );
+
+    await setDoc(newDocRef, {
+      name: newTaskName,
+      description: newTaskDescription,
+      points: newTaskPoints,
+      status: 'pending'
+    });
+    setNewTaskName(null)
+    setNewTaskDescription(null)
+    setNewTaskPoints(null)
+    setModalVisible(false)
+    }
+
+    else {
+    //snack that says to complete fields
+    setAddTaskSnack(true)
+    }
+  };
+
 
   // convert numerical date object to string for settings page 
   const getBirthday = () => {
@@ -83,8 +153,8 @@ const TaskScreen = () => {
 
   // upload image to firebase storage and set the photoURL in firestore
   const uploadFile = async () => {
-    if (imageUpload !== null){
-    const response = await fetch(imageUpload)
+    if (imageUpload !== null) {
+      const response = await fetch(imageUpload)
       const blob = await response.blob();
       const filename = `images/${auth.currentUser.uid}/` + imageUpload.substring(imageUpload.lastIndexOf('/') + 1)
       const imageRef = ref(storage, filename);
@@ -219,6 +289,8 @@ const TaskScreen = () => {
 
   const onDismissNameSnackBar = () => setNameVisible(false);
 
+  const onDismissAppTaskSnackbar = () => setAddTaskSnack(false);
+
   const saveAndDismiss = () => {
     Keyboard.dismiss()
     saveDetails()
@@ -235,6 +307,79 @@ const TaskScreen = () => {
             <Appbar.Content title={`${userDetails.name}'s Lists`} />
             <Appbar.Action icon="cog-outline" onPress={navToSettings} />
           </Appbar>
+          <Modal
+                animationType="slide"
+                transparent={true}
+                visible={modalVisible}
+                onRequestClose={() => {
+                  Alert.alert("Modal has been closed.");
+                  setModalVisible(!modalVisible);
+                }}
+                style={styles.addTaskModal}
+              >
+                <View style={styles.centeredView}>
+                  <View style={styles.modalView}>
+                    <Text style={styles.modalText} variant="bodyLarge">Add a New Task</Text>
+                   
+                    <View>
+                      <TextInput
+                        value={newTaskName}
+                        placeholder={'Enter Task Name Here'}
+                        onChangeText={(value) => setNewTaskName(value)}
+                        style={styles.input}
+                        onSubmitEditing={Keyboard.dismiss}
+                        placeholderTextColor="gray" 
+                      />
+
+                    </View>
+                    <View>
+                      <TextInput
+                        placeholder={'Enter Task Description Here'}
+                        value={newTaskDescription}
+                        onChangeText={(text) => setNewTaskDescription(text)}
+                        style={styles.input}
+                        onSubmitEditing={Keyboard.dismiss}
+                        placeholderTextColor="gray" 
+
+                      />
+                    </View>
+                    <View>
+                      <TextInput
+                        placeholder={'Enter Task Point Value Here'}
+                        value={newTaskPoints}
+                        onChangeText={(text) => setNewTaskPoints(text)}
+                        style={styles.input}
+                        onSubmitEditing={Keyboard.dismiss}
+                        keyboardType="numeric"
+                        placeholderTextColor="gray" 
+
+                      />
+                    </View>
+
+
+                    <Button
+                      mode="contained" style={styles.addTaskButton}
+                      onPress={() => addTask()}
+                    >
+                      <Text style={styles.buttonText}>Add Task</Text>
+                    </Button>
+                    <Button
+                      mode="contained" style={styles.addTaskButton}
+                      onPress={() => setModalVisible(false)}
+                    >
+                      <Text style={styles.buttonText}>Cancel</Text>
+                    </Button>
+                  </View>
+                  <View style={styles.snackbarsAddTask}>
+            <Snackbar
+              visible={addTaskSnack}
+              onDismiss={onDismissAppTaskSnackbar}
+              >
+              Please fill out all fields.
+            </Snackbar>
+          </View>
+                </View>
+              </Modal>
           <View style={styles.taskMenu}>
             <SegmentedButtons
               style={styles.segButtons}
@@ -256,27 +401,30 @@ const TaskScreen = () => {
             <Divider />
 
           </View>
-
           <View style={styles.taskList}>
-
-            <List.Section>
-              <List.Subheader>Current Points: 10 of 100 needed for reward!</List.Subheader>
-
-              <List.Item title="Do the laundry"
-                description="5 points"
-                left={() => <List.Icon icon="checkbox-multiple-outline" />} />
-              <List.Item title="Clean room"
-                description="5 points"
-                left={() => <List.Icon icon="checkbox-multiple-outline" />} />
-              <List.Item title="Finish Science Project"
-                description="10 points"
-                left={() => <List.Icon icon="checkbox-multiple-outline" />} />
-              <List.Item title="Take dog for walk"
-                description="3 points"
-                left={() => <List.Icon icon="checkbox-multiple-outline" />} />
-
-            </List.Section>
+            <Text>Current Points: 10 of 100 needed for reward!</Text>
+              
+              <Button icon="checkbox-marked-circle-plus-outline" onPress={() => setModalVisible(true)} mode="contained" style={styles.logoutButton}>Add a Task</Button>
+             
+      <ScrollView style={{ paddingBottom: 55 }}>
+        {tasks.map((task, key) => {
+          return (
+            <ScrollView key={key}>
+              <View>
+                <View>
+                  <Text>{task.name}</Text>
+                  <Text>{task.description}</Text>
+                  <Text>{task.points}</Text>
+                </View>
+              </View>
+              <Divider />
+            </ScrollView>
+          );
+        })}
+      </ScrollView>
           </View>
+
+
         </>
       )
     }
@@ -393,15 +541,15 @@ const TaskScreen = () => {
 
           <View style={styles.userInfo}>
             <Button icon="image" onPress={pickImage} mode="contained" style={styles.saveButton}> Choose a New Photo </Button>
-            {imageUpload && 
-            <>
-            <Avatar.Image
-              size={170}
-              source={{ uri: imageUpload }}
-              style={styles.av}
-            />
-            <Button onPress={uploadFile} mode="contained" style={styles.saveButton}>Update Photo</Button>
-</>
+            {imageUpload &&
+              <>
+                <Avatar.Image
+                  size={170}
+                  source={{ uri: imageUpload }}
+                  style={styles.av}
+                />
+                <Button onPress={uploadFile} mode="contained" style={styles.saveButton}>Update Photo</Button>
+              </>
             }
 
             <Divider style={{ marginTop: 30, marginBottom: 30 }} />
@@ -486,7 +634,6 @@ const styles = StyleSheet.create({
   taskList: {
     justifyContent: 'space-around',
     marginLeft: 20,
-    marginTop: 20,
   },
   segButtons: {
     marginLeft: 'auto',
@@ -548,6 +695,11 @@ const styles = StyleSheet.create({
     width: '100%',
     backgroundColor: '#c4def6',
   },
+  snackbarsAddTask: {
+    top: 0,
+    width: '100%',
+    backgroundColor: '#c4def6',
+  },
   input: {
     backgroundColor: 'white',
     paddingHorizontal: 15,
@@ -561,5 +713,34 @@ const styles = StyleSheet.create({
   },
   choosePhoto: {
     fontSize: 30,
+  },
+  centeredView: {
+    top: 60,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  modalView: {
+    width: '95%',
+    top: 0,
+    left: 0,
+    backgroundColor: "white",
+    borderRadius: 20,
+    padding: 35,
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5
+  },
+  addTaskButton: {
+    marginBottom: 10,
+  },
+  addTaskModal: {
+    top: 0,
+    left: 0,
   }
 })
