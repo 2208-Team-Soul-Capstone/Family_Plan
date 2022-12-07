@@ -7,6 +7,7 @@ import {
   Divider,
   Avatar,
   Checkbox,
+  List,
 } from 'react-native-paper';
 import { auth, db } from '../firebase';
 import {
@@ -22,6 +23,7 @@ const GroceryScreen = () => {
   // will add checkbox later
   // const [checked, setChecked] = useState({});
   const [grocery, setGrocery] = useState('');
+  const [counter, setCounter] = useState(0);
   const [userDetails, setUserDetails] = useState([]);
   const [items, setItems] = useState([]);
 
@@ -74,8 +76,9 @@ const GroceryScreen = () => {
       name: userDetails.name,
       item: grocery,
       photoURL: userDetails.photoURL,
+      listNumber: counter,
     });
-
+    setCounter(counter + 1);
     setGrocery('');
   };
 
