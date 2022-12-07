@@ -119,10 +119,6 @@ const styles = StyleSheet.create({
     flexDirection: 'column',
   },
   container: {
-    // flex: 1,
-    // flexDirection: "column",
-    // backgroundColor: 'white',
-    justifyContent: 'top',
     alignItems: 'center',
     top: 95,
   },
