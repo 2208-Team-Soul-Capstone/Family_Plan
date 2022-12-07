@@ -58,9 +58,7 @@ const LoginScreen = () => {
 
   return (
     <>
-        {/* <Appbar style={styles.header}>
-    <Appbar.Content title={'Family Plan'} />  
-    </Appbar> */}
+
 <View style={styles.main}>
     <KeyboardAvoidingView style={styles.container} behavior="padding">
 <View >  
@@ -119,10 +117,6 @@ const styles = StyleSheet.create({
     flexDirection: 'column',
   },
   container: {
-    // flex: 1,
-    // flexDirection: "column",
-    // backgroundColor: 'white',
-    justifyContent: 'top',
     alignItems: 'center',
     top: 95,
   },

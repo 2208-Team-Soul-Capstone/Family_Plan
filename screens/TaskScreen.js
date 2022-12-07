@@ -10,7 +10,7 @@ import {
   onSnapshot,
   deleteDoc,
   setDoc,
-} from 'firebase/firestore';import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
+} from 'firebase/firestore'; import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import * as ImagePicker from 'expo-image-picker'
 import * as EmailValidator from 'email-validator';
 const { width } = Dimensions.get('window');
@@ -36,17 +36,16 @@ const TaskScreen = () => {
 
 
   // snapshot to realtime update task list
-useLayoutEffect(() => {
-  const tasksRef = collection(db, 'users', `${auth.currentUser.uid}`, 'Tasks')
-  onSnapshot(tasksRef, (snapshot) => {
-    let allTasks = []
-    snapshot.docs.forEach((doc) => {
-      allTasks.push({...doc.data(), id: doc.id})
+  useLayoutEffect(() => {
+    const tasksRef = collection(db, 'users', `${auth.currentUser.uid}`, 'Tasks')
+    onSnapshot(tasksRef, (snapshot) => {
+      let allTasks = []
+      snapshot.docs.forEach((doc) => {
+        allTasks.push({ ...doc.data(), id: doc.id })
+      })
+      setTasks(allTasks)
     })
-    console.log('hi')
-    setTasks(allTasks)
-  })
-}, [])
+  }, [])
 
 
   // state variables
@@ -77,7 +76,7 @@ useLayoutEffect(() => {
   const [modalVisible, setModalVisible] = useState(false)
   const [newTaskName, setNewTaskName] = useState(null)
   const [newTaskDescription, setNewTaskDescription] = useState(null)
-  const [newTaskPoints, setNewTaskPoints] = useState(null)
+  const [newTaskPoints, setNewTaskPoints] = useState(0)
   const [addTaskSnack, setAddTaskSnack] = useState(false)
   const [tasks, setTasks] = useState([])
 
@@ -105,12 +104,12 @@ useLayoutEffect(() => {
       let allItems = []
       snapshot.docs.forEach((doc) => {
         const wishItem = {
-                item: doc.data().item,
-                date: doc.data().date,
-                documentId: doc.data().documentId,
-                familyId: doc.data().familyId,
-                userId: doc.data().userId
-              };
+          item: doc.data().item,
+          date: doc.data().date,
+          documentId: doc.data().documentId,
+          familyId: doc.data().familyId,
+          userId: doc.data().userId
+        };
         allItems.push(wishItem);
       })
       const itemsByUserId = allItems.filter(id => id.userId === auth.currentUser.uid);
@@ -140,7 +139,7 @@ useLayoutEffect(() => {
   const handleRemoveWishList = async (documentId, familyId) => {
     deleteDoc(doc(db, 'Families', familyId, 'Wish List', documentId));
   };
-  
+
   // [ Wish List Section Ends Here ]
 
   // logout of firebase auth
@@ -156,30 +155,30 @@ useLayoutEffect(() => {
 
   const addTask = async () => {
 
-    if (newTaskName !== null && newTaskDescription !== null && newTaskPoints !== null){
-    const newDocRef = doc(
-      collection(
-        doc(collection(db, 'users'), auth.currentUser.uid),
-        'Tasks'
-      )
-    );
+    if (newTaskName !== null && newTaskDescription !== null && newTaskPoints !== null) {
+      const newDocRef = doc(
+        collection(
+          doc(collection(db, 'users'), auth.currentUser.uid),
+          'Tasks'
+        )
+      );
 
-    await setDoc(newDocRef, {
-      name: newTaskName,
-      description: newTaskDescription,
-      points: newTaskPoints,
-      status: 'pending',
-      documentId: newDocRef.id,
-    });
-    setNewTaskName(null)
-    setNewTaskDescription(null)
-    setNewTaskPoints(null)
-    setModalVisible(false)
+      await setDoc(newDocRef, {
+        name: newTaskName,
+        description: newTaskDescription,
+        points: newTaskPoints,
+        status: 'pending',
+        documentId: newDocRef.id,
+      });
+      setNewTaskName(null)
+      setNewTaskDescription(null)
+      setNewTaskPoints(null)
+      setModalVisible(false)
     }
 
     else {
-    //snack that says to complete fields
-    setAddTaskSnack(true)
+      //snack that says to complete fields
+      setAddTaskSnack(true)
     }
   };
 
@@ -188,16 +187,16 @@ useLayoutEffect(() => {
   };
 
   const taskCompleted = async (documentId, points) => {
-    let newpoints = userDetails.points += points
+    let newpoints = userDetails.points += parseFloat(points)
     console.log(newpoints)
     setDoc(doc(db, "users", auth.currentUser.uid), {
-      points: newpoints,
+      points: newpoints
     }, { merge: true })
 
     deleteDoc(doc(db, 'users', auth.currentUser.uid, 'Tasks', documentId));
   };
 
- 
+
   // convert numerical date object to string for settings page 
   const getBirthday = () => {
     return new Date(userDetails.birthday.seconds * 1000).toLocaleDateString()
@@ -375,85 +374,8 @@ useLayoutEffect(() => {
       return (
         <>
           <Appbar
-            style={styles.header}>
-            <Appbar.Content title={`${userDetails.name}'s Lists`} />
-            <Appbar.Action icon="cog-outline" onPress={navToSettings} />
-          </Appbar>
-          <Modal
-                animationType="slide"
-                transparent={true}
-                visible={modalVisible}
-                onRequestClose={() => {
-                  Alert.alert("Modal has been closed.");
-                  setModalVisible(!modalVisible);
-                }}
-                style={styles.addTaskModal}
-              >
-                <View style={styles.centeredView}>
-                  <View style={styles.modalView}>
-                    <Text style={styles.modalText} variant="bodyLarge">Add a New Task</Text>
-                   
-                    <View>
-                      <TextInput
-                        value={newTaskName}
-                        placeholder={'Enter Task Name Here'}
-                        onChangeText={(value) => setNewTaskName(value)}
-                        style={styles.input}
-                        onSubmitEditing={Keyboard.dismiss}
-                        placeholderTextColor="gray" 
-                      />
-
-                    </View>
-                    <View>
-                      <TextInput
-                        placeholder={'Enter Task Description Here'}
-                        value={newTaskDescription}
-                        onChangeText={(text) => setNewTaskDescription(text)}
-                        style={styles.input}
-                        onSubmitEditing={Keyboard.dismiss}
-                        placeholderTextColor="gray" 
-
-                      />
-                    </View>
-                    <View>
-                      <TextInput
-                        placeholder={'Enter Task Point Value Here'}
-                        value={newTaskPoints}
-                        onChangeText={(text) => setNewTaskPoints(text)}
-                        style={styles.input}
-                        onSubmitEditing={Keyboard.dismiss}
-                        keyboardType="numeric"
-                        placeholderTextColor="gray" 
-
-                      />
-                    </View>
-
-
-                    <Button
-                      mode="contained" style={styles.addTaskButton}
-                      onPress={() => addTask()}
-                    >
-                      <Text style={styles.buttonText}>Add Task</Text>
-                    </Button>
-                    <Button
-                      mode="contained" style={styles.addTaskButton}
-                      onPress={() => setModalVisible(false)}
-                    >
-                      <Text style={styles.buttonText}>Cancel</Text>
-                    </Button>
-                  </View>
-                  <View style={styles.snackbarsAddTask}>
-            <Snackbar
-              visible={addTaskSnack}
-              onDismiss={onDismissAppTaskSnackbar}
-              >
-              Please fill out all fields.
-            </Snackbar>
-          </View>
-                </View>
-              </Modal>
-          <View style={styles.taskMenu}>
-            <SegmentedButtons
+            style={styles.headerTasks}>
+            <Appbar.Content title={            <SegmentedButtons
               style={styles.segButtons}
               value={taskOrWish}
               onValueChange={setTaskOrWish}
@@ -469,50 +391,124 @@ useLayoutEffect(() => {
                   showSelectedCheck: true,
                 },
               ]}
-            />
-            <Divider />
+            />} />
+            <Appbar.Action icon="cog-outline" onPress={navToSettings} />
+          </Appbar>
+          <Divider />
+          <Modal
+            animationType="slide"
+            transparent={true}
+            visible={modalVisible}
+            onRequestClose={() => {
+              Alert.alert("Modal has been closed.");
+              setModalVisible(!modalVisible);
+            }}
+            style={styles.addTaskModal}
+          >
+            <View style={styles.centeredView}>
+              <View style={styles.modalView}>
+                <Text style={styles.modalText} variant="bodyLarge">Add a New Task</Text>
 
-          </View>
+                <View>
+                  <TextInput
+                    value={newTaskName}
+                    placeholder={'Enter Task Name Here'}
+                    onChangeText={(value) => setNewTaskName(value)}
+                    style={styles.input}
+                    onSubmitEditing={Keyboard.dismiss}
+                    placeholderTextColor="gray"
+                  />
+
+                </View>
+                <View>
+                  <TextInput
+                    placeholder={'Enter Task Description Here'}
+                    value={newTaskDescription}
+                    onChangeText={(text) => setNewTaskDescription(text)}
+                    style={styles.input}
+                    onSubmitEditing={Keyboard.dismiss}
+                    placeholderTextColor="gray"
+
+                  />
+                </View>
+                <View>
+                  <TextInput
+                    placeholder={'Enter Task Point Value Here'}
+                    value={newTaskPoints}
+                    onChangeText={(text) => setNewTaskPoints(text)}
+                    style={styles.input}
+                    onSubmitEditing={Keyboard.dismiss}
+                    keyboardType="numeric"
+                    placeholderTextColor="gray"
+
+                  />
+                </View>
+
+
+                <Button
+                  mode="contained" style={styles.addTaskButton}
+                  onPress={() => addTask()}
+                >
+                  <Text style={styles.buttonText}>Add Task</Text>
+                </Button>
+                <Button
+                  mode="contained" style={styles.addTaskButton}
+                  onPress={() => setModalVisible(false)}
+                >
+                  <Text style={styles.buttonText}>Cancel</Text>
+                </Button>
+              </View>
+              <View style={styles.snackbarsAddTask}>
+                <Snackbar
+                  visible={addTaskSnack}
+                  onDismiss={onDismissAppTaskSnackbar}
+                >
+                  Please fill out all fields.
+                </Snackbar>
+              </View>
+            </View>
+          </Modal>
+
           <View style={styles.taskList}>
             <Text>Current Points: {userDetails.points} of {userDetails.pointsNeeded} needed for reward!</Text>
-              
-              <Button icon="checkbox-marked-circle-plus-outline" onPress={() => setModalVisible(true)} mode="contained" style={styles.logoutButton}>Add a Task</Button>
-             <Divider />
-      <ScrollView style={{ paddingBottom: 55 }}>
-        {tasks.map((task, key) => {
-          return (
-            <ScrollView key={key}>
 
-<List.Section style={styles.itemRow} key={key}>
+            <Button icon="checkbox-marked-circle-plus-outline" onPress={() => setModalVisible(true)} mode="contained" style={styles.logoutButton}>Add a Task</Button>
+            </View>
+            <Divider />
+
+
+            <ScrollView>
+              {tasks.map((task, key) => {
+                return (
+                  <>
+                    <List.Section style={styles.itemRow} key={key}>
                       <View>
-                    <Text variant="titleMedium">{task.name}</Text>
-                  
-                  <Text variant="labelMedium">{task.description} - <Text style={styles.points}> Points: {task.points}</Text></Text>
-                  </View>
-                  <View>
-                  <Button
-                    icon="check-outline"
-                    mode="text"
-                    onPress={() => {
-                      taskCompleted(task.documentId, task.points);
-                    }}
-                  ></Button>
-                  <Button
-                    icon="trash-can-outline"
-                    mode="text"
-                    onPress={() => {
-                      handleRemoveTask(task.documentId);
-                    }}
-                  ></Button>
-               </View>
-                </List.Section>
+                        <Text variant="titleMedium">{task.name}</Text>
 
-              <Divider />
+                        <Text variant="labelMedium">{task.description} - <Text style={styles.points}> Points: {task.points}</Text></Text>
+                      </View>
+                      <View>
+                        <Button
+                          icon="check-outline"
+                          mode="text"
+                          onPress={() => {
+                            taskCompleted(task.documentId, task.points);
+                          }}
+                        ></Button>
+                        <Button
+                          icon="trash-can-outline"
+                          mode="text"
+                          onPress={() => {
+                            handleRemoveTask(task.documentId);
+                          }}
+                        ></Button>
+                      </View>
+                    </List.Section>
+                    <Divider />
+                    </>
+                );
+              })}
             </ScrollView>
-          );
-        })}
-      </ScrollView>
-          </View>
 
 
         </>
@@ -525,13 +521,8 @@ useLayoutEffect(() => {
       return (
         <>
           <Appbar
-            style={styles.header}>
-            <Appbar.Content title={`${userDetails.name}'s Lists`} />
-            <Appbar.Action icon="cog-outline" onPress={navToSettings} />
-          </Appbar>
-
-          <View style={styles.taskMenu}>
-            <SegmentedButtons
+            style={styles.headerTasks}>
+            <Appbar.Content title={            <SegmentedButtons
               style={styles.segButtons}
               value={taskOrWish}
               onValueChange={setTaskOrWish}
@@ -548,69 +539,71 @@ useLayoutEffect(() => {
                   showSelectedCheck: true,
                 },
               ]}
-            />
-            <Divider />
-          </View>
+            />} />
+            <Appbar.Action icon="cog-outline" onPress={navToSettings} />
+          </Appbar>
+<Divider />
+
 
           <List.Subheader>Wish List</List.Subheader>
           <ScrollView style={styles.wishListScrollView}>
-        <View style={styles.wishList}>
-          <List.Section>
-            {wishListItems.map((item, key) => {
-              return (
-                <List.Section style={styles.itemRow} key={key}>
-                  <View style={styles.iconName}>
-                    <List.Item left={() => <List.Icon icon="gift-outline" />} />
-                    <Text>{item.item}</Text>
-                  </View>
-                  <Button
-                    icon="trash-can-outline"
-                    mode="text"
-                    onPress={() => {
-                      handleRemoveWishList(item.documentId, item.familyId);
-                    }}
-                  ></Button>
-                </List.Section>
-              );
-            })}
-          </List.Section>
-        </View>
-      </ScrollView>
-      <View style={styles.screen}>
-        <Button onPress={toggleWishListView}>Add to Wish List</Button>
-
-        <Modal
-          animationType="fade"
-          transparent
-          visible={wishListModalVisible}
-          presentationStyle="overFullScreen"
-        >
-          <View style={styles.mainContainer}>
-            <View style={styles.mainView}>
-              <TextInput
-                placeholder="Add Item Name"
-                value={wishListInputValue}
-                style={styles.textInput}
-                onChangeText={(value) => setWishListInputValue(value)}
-              />
-              <View style={styles.buttonView}>
-                <Button onPress={toggleWishListView} style={styles.closeButton}>
-                  Close
-                </Button>
-                <Button
-                  onPress={() => {
-                    toggleWishListView();
-                    handleAddWishList();
-                  }}
-                  style={styles.closeButton}
-                >
-                  Add
-                </Button>
-              </View>
+            <View style={styles.wishList}>
+              <List.Section>
+                {wishListItems.map((item, key) => {
+                  return (
+                    <List.Section style={styles.itemRow} key={key}>
+                      <View style={styles.iconName}>
+                        <List.Item left={() => <List.Icon icon="gift-outline" />} />
+                        <Text>{item.item}</Text>
+                      </View>
+                      <Button
+                        icon="trash-can-outline"
+                        mode="text"
+                        onPress={() => {
+                          handleRemoveWishList(item.documentId, item.familyId);
+                        }}
+                      ></Button>
+                    </List.Section>
+                  );
+                })}
+              </List.Section>
             </View>
+          </ScrollView>
+          <View style={styles.screen}>
+            <Button onPress={toggleWishListView}>Add to Wish List</Button>
+
+            <Modal
+              animationType="fade"
+              transparent
+              visible={wishListModalVisible}
+              presentationStyle="overFullScreen"
+            >
+              <View style={styles.mainContainer}>
+                <View style={styles.mainView}>
+                  <TextInput
+                    placeholder="Add Item Name"
+                    value={wishListInputValue}
+                    style={styles.textInput}
+                    onChangeText={(value) => setWishListInputValue(value)}
+                  />
+                  <View style={styles.buttonView}>
+                    <Button onPress={toggleWishListView} style={styles.closeButton}>
+                      Close
+                    </Button>
+                    <Button
+                      onPress={() => {
+                        toggleWishListView();
+                        handleAddWishList();
+                      }}
+                      style={styles.closeButton}
+                    >
+                      Add
+                    </Button>
+                  </View>
+                </View>
+              </View>
+            </Modal>
           </View>
-        </Modal>
-      </View>
         </>
       )
   }
@@ -744,6 +737,14 @@ const styles = StyleSheet.create({
     fontSize: 30,
     backgroundColor: '#c4def6',
   },
+    headerTasks: {
+      marginTop: 60,
+      flexDirection: "row",
+      justifyContent: 'flex-end',
+      marginBottom: 10,
+      fontSize: 30,
+      backgroundColor: 'white',
+    },
   headerText: {
     fontSize: 30,
   },
@@ -758,8 +759,6 @@ const styles = StyleSheet.create({
   segButtons: {
     marginLeft: 'auto',
     marginRight: 'auto',
-    marginTop: 10,
-    marginBottom: 10,
   },
   settingsButton: {
     backgroundColor: '#000000',
@@ -878,6 +877,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    marginLeft: 15,
   },
   iconName: {
     display: 'flex',
@@ -931,5 +931,8 @@ const styles = StyleSheet.create({
     justifyContent: 'space-around',
     marginLeft: 20,
   },
-    // [ Wish List Ends Here ]
+  // [ Wish List Ends Here ]
+  taskListView: {
+    marginBottom: 1,
+  }
 })
