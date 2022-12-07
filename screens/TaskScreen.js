@@ -34,9 +34,10 @@ const TaskScreen = () => {
     })()
   }, [])
 
+
+  // snapshot to realtime update task list
 useLayoutEffect(() => {
   const tasksRef = collection(db, 'users', `${auth.currentUser.uid}`, 'Tasks')
-
   onSnapshot(tasksRef, (snapshot) => {
     let allTasks = []
     snapshot.docs.forEach((doc) => {
@@ -44,7 +45,6 @@ useLayoutEffect(() => {
     })
     console.log('hi')
     setTasks(allTasks)
-    
   })
 }, [])
 
@@ -83,7 +83,6 @@ useLayoutEffect(() => {
 
   const navigation = useNavigation();
 
-  // get tasks and listen 
 
   // [ Wish List Section Starts Here ]
   const [wishListModalVisible, setWishListModalVisible] = useState(false);
@@ -110,13 +109,15 @@ useLayoutEffect(() => {
                 date: doc.data().date,
                 documentId: doc.data().documentId,
                 familyId: doc.data().familyId,
+                userId: doc.data().userId
               };
         allItems.push(wishItem);
       })
-      setWishListItems(allItems)
+      const itemsByUserId = allItems.filter(id => id.userId === auth.currentUser.uid);
+      setWishListItems(itemsByUserId);
     })
 
-  }, [])
+  }, [taskOrWish])
 
   const handleAddWishList = async () => {
     const newDocRef = doc(
@@ -167,7 +168,8 @@ useLayoutEffect(() => {
       name: newTaskName,
       description: newTaskDescription,
       points: newTaskPoints,
-      status: 'pending'
+      status: 'pending',
+      documentId: newDocRef.id,
     });
     setNewTaskName(null)
     setNewTaskDescription(null)
@@ -181,7 +183,21 @@ useLayoutEffect(() => {
     }
   };
 
+  const handleRemoveTask = async (documentId) => {
+    deleteDoc(doc(db, 'users', auth.currentUser.uid, 'Tasks', documentId));
+  };
 
+  const taskCompleted = async (documentId, points) => {
+    let newpoints = userDetails.points += points
+    console.log(newpoints)
+    setDoc(doc(db, "users", auth.currentUser.uid), {
+      points: newpoints,
+    }, { merge: true })
+
+    deleteDoc(doc(db, 'users', auth.currentUser.uid, 'Tasks', documentId));
+  };
+
+ 
   // convert numerical date object to string for settings page 
   const getBirthday = () => {
     return new Date(userDetails.birthday.seconds * 1000).toLocaleDateString()
@@ -458,21 +474,39 @@ useLayoutEffect(() => {
 
           </View>
           <View style={styles.taskList}>
-            <Text>Current Points: 10 of 100 needed for reward!</Text>
+            <Text>Current Points: {userDetails.points} of {userDetails.pointsNeeded} needed for reward!</Text>
               
               <Button icon="checkbox-marked-circle-plus-outline" onPress={() => setModalVisible(true)} mode="contained" style={styles.logoutButton}>Add a Task</Button>
-             
+             <Divider />
       <ScrollView style={{ paddingBottom: 55 }}>
         {tasks.map((task, key) => {
           return (
             <ScrollView key={key}>
-              <View>
-                <View>
-                  <Text>{task.name}</Text>
-                  <Text>{task.description}</Text>
-                  <Text>{task.points}</Text>
-                </View>
-              </View>
+
+<List.Section style={styles.itemRow} key={key}>
+                      <View>
+                    <Text variant="titleMedium">{task.name}</Text>
+                  
+                  <Text variant="labelMedium">{task.description} - <Text style={styles.points}> Points: {task.points}</Text></Text>
+                  </View>
+                  <View>
+                  <Button
+                    icon="check-outline"
+                    mode="text"
+                    onPress={() => {
+                      taskCompleted(task.documentId, task.points);
+                    }}
+                  ></Button>
+                  <Button
+                    icon="trash-can-outline"
+                    mode="text"
+                    onPress={() => {
+                      handleRemoveTask(task.documentId);
+                    }}
+                  ></Button>
+               </View>
+                </List.Section>
+
               <Divider />
             </ScrollView>
           );
@@ -520,7 +554,7 @@ useLayoutEffect(() => {
 
           <List.Subheader>Wish List</List.Subheader>
           <ScrollView style={styles.wishListScrollView}>
-        <View style={styles.taskList}>
+        <View style={styles.wishList}>
           <List.Section>
             {wishListItems.map((item, key) => {
               return (
@@ -530,7 +564,7 @@ useLayoutEffect(() => {
                     <Text>{item.item}</Text>
                   </View>
                   <Button
-                    icon="cart-remove"
+                    icon="trash-can-outline"
                     mode="text"
                     onPress={() => {
                       handleRemoveWishList(item.documentId, item.familyId);
@@ -623,29 +657,6 @@ useLayoutEffect(() => {
             <Appbar.Content title={'Edit Profile'} />
             <Appbar.Action icon="keyboard-backspace" onPress={profileEditBack} />
           </Appbar>
-
-          <View style={styles.taskMenu}>
-            <SegmentedButtons
-              style={styles.segButtons}
-              value={taskOrWish}
-              onValueChange={setTaskOrWish}
-              buttons={[
-                {
-                  value: 'photoSegButton',
-                  label: 'Photo',
-                  showSelectedCheck: true,
-                },
-                {
-                  value: 'userdetailsSegButton',
-                  label: 'User Details',
-                  showSelectedCheck: true,
-                },
-              ]}
-            />
-            <Divider />
-
-          </View>
-
 
           <View style={styles.userInfo}>
             <Button icon="image" onPress={pickImage} mode="contained" style={styles.saveButton}> Choose a New Photo </Button>
@@ -742,6 +753,7 @@ const styles = StyleSheet.create({
   taskList: {
     justifyContent: 'space-around',
     marginLeft: 20,
+    marginTop: 20,
   },
   segButtons: {
     marginLeft: 'auto',
@@ -780,6 +792,7 @@ const styles = StyleSheet.create({
     marginTop: 20,
     marginLeft: 'auto',
     marginRight: 'auto',
+    marginBottom: 20,
   },
   saveButton: {
     width: 250,
@@ -910,6 +923,13 @@ const styles = StyleSheet.create({
     width: '60%',
     flexDirection: 'row',
     justifyContent: 'space-between',
+  },
+  points: {
+    justifyContent: 'left',
+  },
+  wishList: {
+    justifyContent: 'space-around',
+    marginLeft: 20,
   },
     // [ Wish List Ends Here ]
 })
