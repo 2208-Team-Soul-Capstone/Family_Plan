@@ -1,4 +1,4 @@
-import { StyleSheet, View, TextInput, Keyboard, Modal, ScrollView } from 'react-native'
+import { StyleSheet, View, TextInput, Keyboard, Modal, ScrollView, Dimensions } from 'react-native'
 import React, { useState, useEffect, useLayoutEffect } from 'react'
 import { auth, db } from '../firebase';
 import { useNavigation } from '@react-navigation/native';
@@ -13,6 +13,7 @@ import {
 } from 'firebase/firestore';import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import * as ImagePicker from 'expo-image-picker'
 import * as EmailValidator from 'email-validator';
+const { width } = Dimensions.get('window');
 
 
 const TaskScreen = () => {
@@ -84,7 +85,62 @@ useLayoutEffect(() => {
 
   // get tasks and listen 
 
+  // [ Wish List Section Starts Here ]
+  const [wishListModalVisible, setWishListModalVisible] = useState(false);
+  const [wishListInputValue, setWishListInputValue] = useState('');
+  const [wishListItems, setWishListItems] = useState([]);
 
+  const toggleWishListView = () => {
+    setWishListModalVisible(!wishListModalVisible);
+  };
+
+  useLayoutEffect(() => {
+    const wishListCollectionRef = collection(
+      db,
+      'Families',
+      `${userDetails.familyId}`,
+      'Wish List'
+    )
+
+    onSnapshot(wishListCollectionRef, (snapshot) => {
+      let allItems = []
+      snapshot.docs.forEach((doc) => {
+        const wishItem = {
+                item: doc.data().item,
+                date: doc.data().date,
+                documentId: doc.data().documentId,
+                familyId: doc.data().familyId,
+              };
+        allItems.push(wishItem);
+      })
+      setWishListItems(allItems)
+    })
+
+  }, [])
+
+  const handleAddWishList = async () => {
+    const newDocRef = doc(
+      collection(
+        doc(collection(db, 'Families'), userDetails.familyId),
+        'Wish List'
+      )
+    );
+
+    await setDoc(newDocRef, {
+      familyId: userDetails.familyId,
+      userId: auth.currentUser.uid,
+      documentId: newDocRef.id,
+      item: wishListInputValue,
+      date: Date(),
+    });
+    setWishListInputValue('');
+  };
+
+  const handleRemoveWishList = async (documentId, familyId) => {
+    deleteDoc(doc(db, 'Families', familyId, 'Wish List', documentId));
+  };
+  
+  // [ Wish List Section Ends Here ]
 
   // logout of firebase auth
   const handleSignOut = () => {
@@ -462,13 +518,65 @@ useLayoutEffect(() => {
             <Divider />
           </View>
 
-          <View style={styles.taskList}>
-            <List.Section>
-              <List.Subheader>Wish List</List.Subheader>
-              <List.Item title="Nerf Gun"
-                left={() => <List.Icon icon="gift-outline" />} />
-            </List.Section>
+          <List.Subheader>Wish List</List.Subheader>
+          <ScrollView style={styles.wishListScrollView}>
+        <View style={styles.taskList}>
+          <List.Section>
+            {wishListItems.map((item, key) => {
+              return (
+                <List.Section style={styles.itemRow} key={key}>
+                  <View style={styles.iconName}>
+                    <List.Item left={() => <List.Icon icon="gift-outline" />} />
+                    <Text>{item.item}</Text>
+                  </View>
+                  <Button
+                    icon="cart-remove"
+                    mode="text"
+                    onPress={() => {
+                      handleRemoveWishList(item.documentId, item.familyId);
+                    }}
+                  ></Button>
+                </List.Section>
+              );
+            })}
+          </List.Section>
+        </View>
+      </ScrollView>
+      <View style={styles.screen}>
+        <Button onPress={toggleWishListView}>Add to Wish List</Button>
+
+        <Modal
+          animationType="fade"
+          transparent
+          visible={wishListModalVisible}
+          presentationStyle="overFullScreen"
+        >
+          <View style={styles.mainContainer}>
+            <View style={styles.mainView}>
+              <TextInput
+                placeholder="Add Item Name"
+                value={wishListInputValue}
+                style={styles.textInput}
+                onChangeText={(value) => setWishListInputValue(value)}
+              />
+              <View style={styles.buttonView}>
+                <Button onPress={toggleWishListView} style={styles.closeButton}>
+                  Close
+                </Button>
+                <Button
+                  onPress={() => {
+                    toggleWishListView();
+                    handleAddWishList();
+                  }}
+                  style={styles.closeButton}
+                >
+                  Add
+                </Button>
+              </View>
+            </View>
           </View>
+        </Modal>
+      </View>
         </>
       )
   }
@@ -742,5 +850,66 @@ const styles = StyleSheet.create({
   addTaskModal: {
     top: 0,
     left: 0,
-  }
+  },
+  // [ Wish List Starts Here ]
+  screen: {
+    width: '50%',
+    borderRadius: 30,
+    backgroundColor: '#c4def6',
+    position: 'absolute',
+    bottom: 10,
+    left: '25%',
+  },
+  itemRow: {
+    display: 'flex',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  iconName: {
+    display: 'flex',
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  closeButton: {
+    borderRadius: 5,
+    backgroundColor: '#c4def6',
+    width: 80,
+  },
+  wishListScrollView: {
+    marginBottom: 50,
+  },
+  mainContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.2)',
+  },
+  mainView: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'absolute',
+    top: '50%',
+    left: '50%',
+    elevation: 5,
+    transform: [{ translateX: -(width * 0.4) }, { translateY: -90 }],
+    height: 180,
+    width: width * 0.8,
+    backgroundColor: '#fff',
+    borderRadius: 7,
+  },
+  textInput: {
+    width: '80%',
+    paddingHorizontal: 16,
+    borderColor: 'rgba(0, 0, 0, 0.2)',
+    borderWidth: 1,
+    marginBottom: 18,
+  },
+  buttonView: {
+    display: 'flex',
+    width: '60%',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+    // [ Wish List Ends Here ]
 })
