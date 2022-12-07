@@ -58,9 +58,7 @@ const LoginScreen = () => {
 
   return (
     <>
-        {/* <Appbar style={styles.header}>
-    <Appbar.Content title={'Family Plan'} />  
-    </Appbar> */}
+
 <View style={styles.main}>
     <KeyboardAvoidingView style={styles.container} behavior="padding">
 <View >  
