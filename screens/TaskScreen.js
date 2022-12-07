@@ -34,9 +34,10 @@ const TaskScreen = () => {
     })()
   }, [])
 
+
+  // snapshot to realtime update task list
 useLayoutEffect(() => {
   const tasksRef = collection(db, 'users', `${auth.currentUser.uid}`, 'Tasks')
-
   onSnapshot(tasksRef, (snapshot) => {
     let allTasks = []
     snapshot.docs.forEach((doc) => {
@@ -44,7 +45,6 @@ useLayoutEffect(() => {
     })
     console.log('hi')
     setTasks(allTasks)
-    
   })
 }, [])
 
