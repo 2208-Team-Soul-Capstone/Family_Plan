@@ -5,9 +5,11 @@ import {
   TextInput,
   TouchableOpacity,
   View,
+  Image,
 } from 'react-native';
 import React, { useEffect, useState } from 'react';
 import {
+  AuthErrorCodes,
   onAuthStateChanged,
   signInWithEmailAndPassword,
 } from 'firebase/auth';
@@ -56,11 +58,24 @@ const LoginScreen = () => {
 
   return (
     <>
-        <Appbar style={styles.header}>
+        {/* <Appbar style={styles.header}>
     <Appbar.Content title={'Family Plan'} />  
-    </Appbar>
+    </Appbar> */}
+<View style={styles.main}>
     <KeyboardAvoidingView style={styles.container} behavior="padding">
+<View >  
+  <Text>    
+  <Image
+        style={styles.logo}
+        source={{
+          uri: 'https://firebasestorage.googleapis.com/v0/b/familyplan-3d847.appspot.com/o/logo.jpg?alt=media&token=78d6580b-5e0c-406c-8fc7-10f801e91c3b',
+        }}
+      />
+      </Text>
+      </View>
       <View style={styles.inputContainer}>
+
+
         <TextInput
           placeholder="Email"
           value={email}
@@ -90,6 +105,7 @@ const LoginScreen = () => {
         </TouchableOpacity>
       </View>
     </KeyboardAvoidingView>
+    </View>
     </>
   );
 };
@@ -97,18 +113,25 @@ const LoginScreen = () => {
 export default LoginScreen;
 
 const styles = StyleSheet.create({
-  container: {
+  main: {
+    backgroundColor: '#F5F5F5',
     flex: 1,
-    justifyContent: 'center',
+    flexDirection: 'column',
+  },
+  container: {
+    // flex: 1,
+    // flexDirection: "column",
+    // backgroundColor: 'white',
+    justifyContent: 'top',
     alignItems: 'center',
+    top: 95,
   },
   header: {
     marginTop: 60,
     flexDirection: "row",
     justifyContent: 'flex-end',
-    marginBottom: 10,
     fontSize: 30,
-    backgroundColor: '#c4def6',
+    backgroundColor: 'white',
   },
   inputContainer: {
     width: '80%',
@@ -119,6 +142,7 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderRadius: 10,
     marginTop: 5,
+    borderColor: '#0782F9',
   },
   buttonContainer: {
     width: '60%',
@@ -148,5 +172,11 @@ const styles = StyleSheet.create({
     color: '#0782F9',
     fontWeight: '700',
     fontSize: 16,
+  },
+  logo: {
+    height: 275,
+    width: 240,
+    marginLeft: 'auto',
+    marginRight: 'auto',
   },
 });
