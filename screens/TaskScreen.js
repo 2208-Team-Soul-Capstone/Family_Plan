@@ -27,12 +27,15 @@ const TaskScreen = () => {
 
   // take the auth uid to bring in the user details object from firestore
   useEffect(() => {
-    (async () => {
-      const docRef = doc(db, "users", auth.currentUser.uid);
-      const docSnap = await getDoc(docRef);
-      setUserDetails(docSnap.data())
-    })()
+    const u = onSnapshot(doc(db, "users", auth.currentUser.uid), (doc) => {
+      setUserDetails(doc.data())
+    })
+    console.log(userDetails)
+
+
   }, [])
+
+
 
 
   // snapshot to realtime update task list
@@ -79,6 +82,7 @@ const TaskScreen = () => {
   const [newTaskPoints, setNewTaskPoints] = useState(0)
   const [addTaskSnack, setAddTaskSnack] = useState(false)
   const [tasks, setTasks] = useState([])
+  const [rewardModal, setRewardModal] = useState([false])
 
   const navigation = useNavigation();
 
@@ -189,9 +193,18 @@ const TaskScreen = () => {
   const taskCompleted = async (documentId, points) => {
     let newpoints = userDetails.points += parseFloat(points)
     console.log(newpoints)
-    setDoc(doc(db, "users", auth.currentUser.uid), {
-      points: newpoints
-    }, { merge: true })
+    if (newpoints < userDetails.pointsNeeded) {
+      setDoc(doc(db, "users", auth.currentUser.uid), {
+        points: newpoints
+      }, { merge: true })
+    }
+    else if (newpoints >= userDetails.pointsNeeded) {
+      setDoc(doc(db, "users", auth.currentUser.uid), {
+        points: 0,
+        reward: true,
+      }, { merge: true })
+      setRewardModal(true)
+    }
 
     deleteDoc(doc(db, 'users', auth.currentUser.uid, 'Tasks', documentId));
   };
@@ -256,34 +269,7 @@ const TaskScreen = () => {
     }
   }
 
-  // conditional render for when setings is first loaded to load current photo and subsequently the new photo from state if changes are made
-  const ProPick = () => {
-    if (profilePic) {
-      return <Text style={styles.av}>
-        <Avatar.Image
-          size={170}
-          source={{ uri: profilePic }}
-        />
-      </Text>
-    } else {
-      return <Text style={styles.av}>
-        <Avatar.Image
-          size={170}
-          source={{ uri: userDetails.photoURL }}
-        />
-      </Text>
-    }
-  }
-
   // ----------- conditional render for user details so can be updated by settings save changes
-
-  const SettingsName = () => {
-    if (currentName) {
-      return <Text variant="titleMedium">Name: {currentName} </Text>
-    } else {
-      return <Text variant="titleMedium">Name: {userDetails.name} </Text>
-    }
-  }
 
   const SettingsEmail = () => {
     if (profilePic) {
@@ -373,9 +359,10 @@ const TaskScreen = () => {
     if (taskOrWish == 'task') {
       return (
         <>
+
           <Appbar
             style={styles.headerTasks}>
-            <Appbar.Content title={            <SegmentedButtons
+            <Appbar.Content title={<SegmentedButtons
               style={styles.segButtons}
               value={taskOrWish}
               onValueChange={setTaskOrWish}
@@ -395,6 +382,28 @@ const TaskScreen = () => {
             <Appbar.Action icon="cog-outline" onPress={navToSettings} />
           </Appbar>
           <Divider />
+          <Modal
+            animationType="slide"
+            transparent={true}
+            visible={rewardModal}
+            onRequestClose={() => {
+              Alert.alert("Modal has been closed.");
+              setRewardModal(!rewardModal);
+            }}
+            style={styles.addTaskModal}
+          >
+            <View style={styles.centeredView}>
+              <View style={styles.modalView}>
+                <Text style={styles.modalText} variant="bodyLarge">Congratulations! You earned enough points for your reward. Let your parent know!</Text>
+                <Button
+                  mode="contained" style={styles.taskModalButton}
+                  onPress={() => setRewardModal(false)}
+                >
+                  <Text style={styles.buttonText}>OK</Text>
+                </Button>
+              </View>
+            </View>
+          </Modal>
           <Modal
             animationType="slide"
             transparent={true}
@@ -446,13 +455,13 @@ const TaskScreen = () => {
 
 
                 <Button
-                  mode="contained" style={styles.addTaskButton}
+                  mode="contained" style={styles.taskModalButton}
                   onPress={() => addTask()}
                 >
                   <Text style={styles.buttonText}>Add Task</Text>
                 </Button>
                 <Button
-                  mode="contained" style={styles.addTaskButton}
+                  mode="contained" style={styles.taskModalButton}
                   onPress={() => setModalVisible(false)}
                 >
                   <Text style={styles.buttonText}>Cancel</Text>
@@ -470,45 +479,43 @@ const TaskScreen = () => {
           </Modal>
 
           <View style={styles.taskList}>
-            <Text>Current Points: {userDetails.points} of {userDetails.pointsNeeded} needed for reward!</Text>
+            <Text style={styles.pointsText}>{userDetails.points} of {userDetails.pointsNeeded} Reward Points</Text>
 
-            <Button icon="checkbox-marked-circle-plus-outline" onPress={() => setModalVisible(true)} mode="contained" style={styles.logoutButton}>Add a Task</Button>
-            </View>
-            <Divider />
+            <Button icon="checkbox-marked-circle-plus-outline" onPress={() => setModalVisible(true)} mode="contained" style={styles.addTaskButton}>Add a Task</Button>
+          </View>
 
+          <ScrollView style={styles.scrollBox}>
+            {tasks.map((task, key) => {
+              return (
+                <>
+                  <List.Section style={styles.itemRow} key={key}>
+                    <View>
+                      <Text variant="titleMedium">{task.name}</Text>
 
-            <ScrollView>
-              {tasks.map((task, key) => {
-                return (
-                  <>
-                    <List.Section style={styles.itemRow} key={key}>
-                      <View>
-                        <Text variant="titleMedium">{task.name}</Text>
-
-                        <Text variant="labelMedium">{task.description} - <Text style={styles.points}> Points: {task.points}</Text></Text>
-                      </View>
-                      <View>
-                        <Button
-                          icon="check-outline"
-                          mode="text"
-                          onPress={() => {
-                            taskCompleted(task.documentId, task.points);
-                          }}
-                        ></Button>
-                        <Button
-                          icon="trash-can-outline"
-                          mode="text"
-                          onPress={() => {
-                            handleRemoveTask(task.documentId);
-                          }}
-                        ></Button>
-                      </View>
-                    </List.Section>
-                    <Divider />
-                    </>
-                );
-              })}
-            </ScrollView>
+                      <Text variant="labelMedium">{task.description} - <Text style={styles.points}> Points: {task.points}</Text></Text>
+                    </View>
+                    <View>
+                      <Button
+                        icon="check-outline"
+                        mode="text"
+                        onPress={() => {
+                          taskCompleted(task.documentId, task.points);
+                        }}
+                      ></Button>
+                      <Button
+                        icon="trash-can-outline"
+                        mode="text"
+                        onPress={() => {
+                          handleRemoveTask(task.documentId);
+                        }}
+                      ></Button>
+                    </View>
+                  </List.Section>
+                  <Divider />
+                </>
+              );
+            })}
+          </ScrollView>
 
 
         </>
@@ -522,7 +529,7 @@ const TaskScreen = () => {
         <>
           <Appbar
             style={styles.headerTasks}>
-            <Appbar.Content title={            <SegmentedButtons
+            <Appbar.Content title={<SegmentedButtons
               style={styles.segButtons}
               value={taskOrWish}
               onValueChange={setTaskOrWish}
@@ -542,7 +549,7 @@ const TaskScreen = () => {
             />} />
             <Appbar.Action icon="cog-outline" onPress={navToSettings} />
           </Appbar>
-<Divider />
+          <Divider />
 
 
           <List.Subheader>Wish List</List.Subheader>
@@ -622,10 +629,13 @@ const TaskScreen = () => {
 
           <View style={styles.userInfo}>
             <Button icon='pencil' onPress={gotoEditProfile}>Edit Profile</Button>
-
-            <ProPick />
-
-            <SettingsName />
+            <Text style={styles.av}>
+              <Avatar.Image
+                size={170}
+                source={{ uri: userDetails.photoURL }}
+              />
+            </Text>
+            <Text variant="titleMedium">Name: {userDetails.name} </Text>
             <Text variant="titleMedium">E-mail: {auth.currentUser.email}</Text>
             <Text variant="titleMedium">Family ID: {userDetails.familyId}</Text>
             <Text variant="titleMedium">Birthday: {getBirthday()}</Text>
@@ -737,14 +747,14 @@ const styles = StyleSheet.create({
     fontSize: 30,
     backgroundColor: '#c4def6',
   },
-    headerTasks: {
-      marginTop: 60,
-      flexDirection: "row",
-      justifyContent: 'flex-end',
-      marginBottom: 10,
-      fontSize: 30,
-      backgroundColor: 'white',
-    },
+  headerTasks: {
+    marginTop: 60,
+    flexDirection: "row",
+    justifyContent: 'flex-end',
+    marginBottom: 10,
+    fontSize: 30,
+    backgroundColor: 'white',
+  },
   headerText: {
     fontSize: 30,
   },
@@ -752,9 +762,11 @@ const styles = StyleSheet.create({
     height: 60,
   },
   taskList: {
-    justifyContent: 'space-around',
-    marginLeft: 20,
-    marginTop: 20,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    padding: 10,
+    backgroundColor: 'lightgray',
+
   },
   segButtons: {
     marginLeft: 'auto',
@@ -792,6 +804,11 @@ const styles = StyleSheet.create({
     marginLeft: 'auto',
     marginRight: 'auto',
     marginBottom: 20,
+  },
+  addTaskButton: {
+    width: 130,
+    marginLeft: 'auto',
+    marginRight: 'auto',
   },
   saveButton: {
     width: 250,
@@ -856,9 +873,7 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 5
   },
-  addTaskButton: {
-    marginBottom: 10,
-  },
+
   addTaskModal: {
     top: 0,
     left: 0,
@@ -934,5 +949,16 @@ const styles = StyleSheet.create({
   // [ Wish List Ends Here ]
   taskListView: {
     marginBottom: 1,
+  },
+  scrollBox: {
+    marginBottom: 50,
+  },
+  pointsText: {
+    marginTop: 10,
+    marginLeft: 25
+  },
+  taskModalButton: {
+    marginBottom: 10,
   }
+
 })

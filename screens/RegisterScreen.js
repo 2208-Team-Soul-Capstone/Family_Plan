@@ -52,6 +52,7 @@ const RegisterScreen = () => {
                     points: 0,
                     pointsNeeded: 100,
                     accountType: accountType,
+                    reward: false,
                     photoURL: 'https://firebasestorage.googleapis.com/v0/b/familyplan-3d847.appspot.com/o/default_profile_pic.jpg?alt=media&token=a92a3295-f70d-4705-becd-cb61e49b2176'
                   });
                 const user = userCredential.user;
