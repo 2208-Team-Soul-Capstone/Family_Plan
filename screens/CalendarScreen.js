@@ -4,7 +4,7 @@ import { Button, Appbar, List, Text } from 'react-native-paper';
 import { Calendar, CalendarList, Agenda } from 'react-native-calendars';
 import { Divider, Snackbar } from 'react-native-paper';
 import { Card, Avatar } from 'react-native-paper';
-
+import DateTimePicker from '@react-native-community/datetimepicker';
 
 
 const timeToString = (time) => {
@@ -18,8 +18,10 @@ const CalendarScreen = () => {
   const [newTaskDescription, setNewTaskDescription] = useState(null)
   const [newTaskPoints, setNewTaskPoints] = useState(null)
   const [addTaskSnack, setAddTaskSnack] = useState(false)
+  // const [mode, setMode] = useState('date');
 
   const onDismissAppTaskSnackbar = () => setAddTaskSnack(false);
+  const date = new Date()
 
   const loadItems = (day) => {
     setTimeout(() => {
@@ -37,6 +39,7 @@ const CalendarScreen = () => {
           // }
         }
       }
+
       const newItems = {};
       Object.keys(items).forEach((key) => {
         newItems[key] = items[key];
@@ -47,9 +50,6 @@ const CalendarScreen = () => {
   const renderItem = (item) => {
     return (
       <TouchableOpacity style={{ marginRight: 10, marginTop: 17 }}>
-
-
-
         <Card>
           <Card.Content>
             <View
@@ -58,102 +58,133 @@ const CalendarScreen = () => {
                 justifyContent: 'space-between',
                 alignItems: 'center',
               }}>
-
               {/* <Avatar.Text label="M" /> */}
             </View>
           </Card.Content>
         </Card>
-
       </TouchableOpacity>
-
     );
   };
 
+
+
   return (
     <View style={{ flex: 1 }}>
-        <Modal
-          animationType="slide"
-          transparent={true}
-          visible={modalVisible}
-          onRequestClose={() => {
-            Alert.alert("Modal has been closed.");
-            setModalVisible(!modalVisible);
-          }}
-          style={styles.addTaskModal}
-        >
-          <View style={styles.centeredView}>
-            <View style={styles.modalView}>
-              <Text style={styles.modalText} variant="bodyLarge">Add a New Task</Text>
-
-              <View>
-                <TextInput
-                  value={newTaskName}
-                  placeholder={'Enter Task Name Here'}
-                  onChangeText={(value) => setNewTaskName(value)}
-                  style={styles.input}
-                  onSubmitEditing={Keyboard.dismiss}
-                  placeholderTextColor="gray"
-                />
-
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={modalVisible}
+        onRequestClose={() => {
+          Alert.alert("Modal has been closed.");
+          setModalVisible(!modalVisible);
+        }}
+        style={styles.addEventModal}
+      >
+        <View style={styles.centeredView}>
+          <View style={styles.modalView}>
+            <View style={{ flexDirection: 'row', width: '90%', marginTop: 10, marginBottom: 20 }}>
+              <View style={styles.leftContainer}>
+                <Text variant="bodyLarge">Cancel</Text>
               </View>
-              <View>
-                <TextInput
-                  placeholder={'Enter Task Description Here'}
-                  value={newTaskDescription}
-                  onChangeText={(text) => setNewTaskDescription(text)}
-                  style={styles.input}
-                  onSubmitEditing={Keyboard.dismiss}
-                  placeholderTextColor="gray"
-
-                />
+              <Text style={{ alignSelf: 'center' }} variant="bodyLarge">New Event</Text>
+              <View style={styles.rightContainer}>
+                <Text variant="bodyLarge">Add</Text>
               </View>
-              <View>
-                <TextInput
-                  placeholder={'Enter Task Point Value Here'}
-                  value={newTaskPoints}
-                  onChangeText={(text) => setNewTaskPoints(text)}
-                  style={styles.input}
-                  onSubmitEditing={Keyboard.dismiss}
-                  keyboardType="numeric"
-                  placeholderTextColor="gray"
-
-                />
-              </View>
-
-
-              <Button
-                mode="contained" style={styles.addTaskButton}
-                onPress={() => addTask()}
-              >
-                <Text style={styles.buttonText}>Add Task</Text>
-              </Button>
-              <Button
-                mode="contained" style={styles.addTaskButton}
-                onPress={() => setModalVisible(false)}
-              >
-                <Text style={styles.buttonText}>Cancel</Text>
-              </Button>
             </View>
-            <View style={styles.snackbarsAddTask}>
-              <Snackbar
-                visible={addTaskSnack}
-                onDismiss={onDismissAppTaskSnackbar}
-              >
-                Please fill out all fields.
-              </Snackbar>
+            <View style={{ width: '95%' }}>
+              <TextInput
+                placeholder={'Title'}
+                value={newTaskDescription}
+                onChangeText={(text) => setNewTaskDescription(text)}
+                style={styles.textInput}
+                onSubmitEditing={Keyboard.dismiss}
+                placeholderTextColor="gray"
+              />
             </View>
+            <View style={{ flexDirection: 'row', width: '90%' }}>
+              <View style={styles.leftContainer}>
+                <Text variant="bodyLarge">Starts</Text>
+              </View>
+              <View style={styles.rightContainer}>
+                <DateTimePicker
+                  style={{ marginRight: 5, marginBottom: 5 }}
+                  testID='dateTimePicker'
+                  value={date}
+                  mode="date"
+                  is24Hour={true}
+                  display='calendar'
+                // onChange={console.log('onChange from date picker fired')}
+                />
+                <DateTimePicker
+                  style={{ marginLeft: 5, marginBottom: 5 }}
+                  testID='dateTimePicker'
+                  value={date}
+                  mode="time"
+                  is24Hour={true}
+                  display='clock'
+                // onChange={console.log('onChange from date picker fired')}
+                />
+              </View>
+            </View>
+            <View style={{ flexDirection: 'row', width: '90%' }}>
+              <View style={styles.leftContainer}>
+                <Text style={{ textAlign: 'left' }} variant="bodyLarge">Ends</Text>
+              </View>
+              <View style={styles.rightContainer}>
+                <DateTimePicker
+                  style={{ marginRight: 5, marginTop: 5 }}
+                  testID='dateTimePicker'
+                  value={date}
+                  mode="date"
+                  is24Hour={true}
+                  display='calendar'
+                // onChange={console.log('onChange from date picker fired')}
+                />
+                <DateTimePicker
+                  style={{ marginLeft: 5, marginTop: 5 }}
+                  testID='dateTimePicker'
+                  value={date}
+                  mode="time"
+                  is24Hour={true}
+                  display='clock'
+                // onChange={console.log('onChange from date picker fired')}
+                />
+              </View>
+            </View>
+            {/* <Button
+              mode="contained" style={styles.addTaskButton}
+              onPress={() => addTask()}
+            >
+              <Text style={styles.buttonText}>Submit</Text>
+            </Button>
+            <Button
+              mode="contained" style={styles.addTaskButton}
+              onPress={() => setModalVisible(false)}
+            >
+              <Text style={styles.buttonText}>Cancel</Text>
+            </Button> */}
           </View>
-        </Modal>
+          <View style={styles.snackbarsAddTask}>
+            <Snackbar
+              visible={addTaskSnack}
+              onDismiss={onDismissAppTaskSnackbar}
+            >
+              Please fill out all fields.
+            </Snackbar>
+          </View>
+        </View>
+      </Modal>
       <Agenda
         items={items}
         loadItemsForMonth={loadItems}
         selected={new Date()}
         renderItem={renderItem}
       />
-      <Button icon="checkbox-marked-circle-plus-outline" onPress={() => { setModalVisible(true), console.log(modalVisible) }} mode="contained" style={styles.logoutButton}>Add a Task</Button>
+      <Button icon="calendar-plus" onPress={() => { setModalVisible(true), console.log(items) }} mode="contained" style={styles.addEventButton}>Add an Event</Button>
     </View>
   );
 };
+
 
 export default CalendarScreen
 
@@ -163,13 +194,17 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     fontSize: 16,
   },
+  centeredView: {
+    top: -25,
+    justifyContent: "center",
+    alignItems: "center",
+  },
   modalView: {
-    width: '95%',
+    width: '100%',
     top: 0,
     left: 0,
     backgroundColor: "white",
     borderRadius: 20,
-    padding: 35,
     alignItems: "center",
     shadowColor: "#000",
     shadowOffset: {
@@ -183,8 +218,32 @@ const styles = StyleSheet.create({
   addTaskButton: {
     marginBottom: 10,
   },
-  addTaskModal: {
+  addEventModal: {
     top: 0,
     left: 0,
+  },
+  addEventButton: {
+    width: '100%',
+    alignSelf: 'center', 
+  },
+  textInput: {
+    width: '95%',
+    height: '35%',
+    paddingLeft: 6,
+    fontSize: 20,
+    alignSelf: 'center',
+    borderColor: 'rgba(0, 0, 0, 0.2)',
+    borderWidth: 1,
+    borderRadius: 10,
+  },
+  leftContainer: {
+    flex: 1,
+    flexDirection: 'row',
+    justifyContent: 'flex-start',
+  },
+  rightContainer: {
+    flex: 1,
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
   },
 })
