@@ -431,8 +431,8 @@ const TaskScreen = () => {
 
               {children.map((child, key) => {
                 return (
-                  <>
-                    <List.Section style={styles.itemRow} key={key}>
+                  <View key={key}>
+                    <List.Section style={styles.itemRow} >
                       <View>
                         <TouchableOpacity
                           style={styles.child}
@@ -501,7 +501,7 @@ const TaskScreen = () => {
                       </ScrollView>
 
                     </Modal>
-                  </>
+                  </View>
                 )
               })
               }
