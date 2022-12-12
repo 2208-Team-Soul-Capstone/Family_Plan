@@ -2,7 +2,7 @@ import { StyleSheet, View, TextInput, Keyboard, Modal, ScrollView, Dimensions, T
 import React, { useState, useEffect, useLayoutEffect } from 'react'
 import { auth, db } from '../firebase';
 import { useNavigation } from '@react-navigation/native';
-import { Button, Divider, SegmentedButtons, Appbar, Avatar, List, Text, Snackbar } from 'react-native-paper';
+import { Button, Divider, SegmentedButtons, Appbar, Avatar, List, Text, Snackbar, Chip } from 'react-native-paper';
 import { doc, getDocs, collection, onSnapshot, deleteDoc, setDoc, query, where } from 'firebase/firestore';
 import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import * as ImagePicker from 'expo-image-picker'
@@ -40,6 +40,7 @@ const TaskScreen = () => {
   const [addTaskSnack, setAddTaskSnack] = useState(false)
   const [tasks, setTasks] = useState([])
   const [rewardModal, setRewardModal] = useState([false])
+  const [wishlistModal, setWishlistModal] = useState(false)
   const [tasksModal, setTasksModal] = useState(false)
 
 
@@ -51,6 +52,11 @@ const TaskScreen = () => {
   // Parent View States
   const [children, setChildren] = useState([])
   const [childTasks, setChildTasks] = useState([])
+  const [childTasksName, setChildTasksName] = useState('')
+  const [childTasksId, setChildTasksId] = useState('')
+  const [childFamilyId, setChildFamilyId] = useState('')
+  const [childTasksPoints, setChildTasksPoints] = useState(0)
+  const [childWishlist, setChildWishlist] = useState([])
 
   //take the auth uid to bring in the user details object from firestore and setup snapshot listener
   useEffect(() => {
@@ -75,7 +81,7 @@ const TaskScreen = () => {
     if (userDetails.familyId) {
       getChildren()
     }
-  }, [userDetails])
+  }, [userDetails, tasksModal, childTasksPoints, setEditProfile])
 
   //snapshot listener to realtime update task list
   useLayoutEffect(() => {
@@ -146,6 +152,11 @@ const TaskScreen = () => {
     deleteDoc(doc(db, 'Families', familyId, 'Wish List', documentId));
   };
 
+  const parentHandleRemoveWishList = async (documentId, familyId) => {
+    deleteDoc(doc(db, 'Families', familyId, 'Wish List', documentId));
+    getChildWishlist(childTasksName, childTasksId, childFamilyId)
+  };
+
   // [ Wish List Section Ends Here ]
 
   // logout of firebase auth
@@ -194,7 +205,6 @@ const TaskScreen = () => {
 
   const taskCompleted = async (documentId, points) => {
     let newpoints = userDetails.points += parseFloat(points)
-    console.log(newpoints)
     if (newpoints < userDetails.pointsNeeded) {
       setDoc(doc(db, "users", auth.currentUser.uid), {
         points: newpoints
@@ -210,6 +220,37 @@ const TaskScreen = () => {
 
     deleteDoc(doc(db, 'users', auth.currentUser.uid, 'Tasks', documentId));
   };
+
+  const parentHandleRemoveTask = async (documentId) => {
+    deleteDoc(doc(db, 'users', childTasksId, 'Tasks', documentId));
+    getChildTasks(childTasksName, childTasksId, childTasksPoints)
+  };
+
+
+  const parentTaskCompleted = async (documentId, points, pointsNeeded) => {
+    let currentpoints = childTasksPoints
+    let newpoints = currentpoints += parseFloat(points)
+
+    if (newpoints < pointsNeeded) {
+      setDoc(doc(db, "users", childTasksId), {
+        points: newpoints
+      }, { merge: true })
+    }
+    else if (newpoints >= pointsNeeded) {
+      setDoc(doc(db, "users", childTasksId), {
+        points: 0,
+        reward: true,
+      }, { merge: true })
+    }
+    deleteDoc(doc(db, 'users', childTasksId, 'Tasks', documentId));
+    getChildTasks(childTasksName, childTasksId, newpoints)
+  };
+
+  const resetReward = () => {
+    setDoc(doc(db, "users", childTasksId), {
+      reward: false,
+    }, { merge: true })
+  }
 
   // convert numerical date object to string for settings page 
 
@@ -273,26 +314,20 @@ const TaskScreen = () => {
   // ----------- Update user details (minus photo) 
 
   const saveDetails = () => {
-
-    console.log(userName)
     if (userName !== null) {
       setDoc(doc(db, "users", auth.currentUser.uid), {
         name: userName,
       }, { merge: true })
       setUserName(null)
-      console.log('name updated')
       setNameVisible(true)
     }
 
     if (email !== null) {
 
-      console.log(EmailValidator.validate(email));
-
       if (EmailValidator.validate(email)) {
         setDoc(doc(db, "users", auth.currentUser.uid), {
           email: email,
         }, { merge: true })
-        console.log('email updated')
       }
       else {
         setEmailErrorVisible(true)
@@ -315,512 +350,649 @@ const TaskScreen = () => {
     saveDetails()
   }
 
-
-// ----------- Begin rendering -- Task List View
-
-if (!settings) {
-  if (taskOrWish == 'task') {
-
-    // ----------- Parent Task List -- NEED TouchableOpacity function to open up a new view with the child's tasks
-    if (userDetails.accountType == 'parent') {
-
-      // individual child tasklist view
-      return (
-        <>
-          <Appbar
-            style={styles.headerTasks}>
-            <Appbar.Content title={<SegmentedButtons
-              style={styles.segButtons}
-              value={taskOrWish}
-              onValueChange={setTaskOrWish}
-              buttons={[
-                {
-                  value: 'task',
-                  label: 'Task List',
-                  showSelectedCheck: true,
-                },
-                {
-                  value: 'wish',
-                  label: 'Wish List',
-                  showSelectedCheck: true,
-                },
-              ]}
-            />} />
-            <Appbar.Action icon="cog-outline" onPress={navToSettings} />
-          </Appbar>
-          <Divider />
-
-          <View style={styles.taskList}>
-            <Text variant="titleSmall">Select a Child below to view their Tasks</Text>
-          </View>
-
-          <ScrollView style={styles.childList}>
-
-            {children.map((child, key) => {
-              return (
-                <>
-                   <List.Section style={styles.itemRow} key={key}>
-                    <View>
-                      <TouchableOpacity
-                        style={styles.child}
-                      ><Text variant="titleLarge"><Avatar.Image
-                        size={40}
-                        source={{ uri: child.photoURL }}
-                      />  {child.name}</Text>
-                      </TouchableOpacity>
-                    </View>
-                  </List.Section>
-                </>
-              )
-            })
-            }
-          </ScrollView>
-        </>
-      )
-
-    }
-    // ----------- Child Task List 
-
-    else if (userDetails.accountType == 'child') {
-      return (
-        <>
-
-          <Appbar
-            style={styles.headerTasks}>
-            <Appbar.Content title={<SegmentedButtons
-              style={styles.segButtons}
-              value={taskOrWish}
-              onValueChange={setTaskOrWish}
-              buttons={[
-                {
-                  value: 'task',
-                  label: 'Task List',
-                  showSelectedCheck: true,
-                },
-                {
-                  value: 'wish',
-                  label: 'Wish List',
-                  showSelectedCheck: true,
-                },
-              ]}
-            />} />
-            <Appbar.Action icon="cog-outline" onPress={navToSettings} />
-          </Appbar>
-          <Divider />
-          <Modal
-            animationType="slide"
-            transparent={true}
-            visible={rewardModal}
-            onRequestClose={() => {
-              Alert.alert("Modal has been closed.");
-              setRewardModal(!rewardModal);
-            }}
-            style={styles.addTaskModal}
-          >
-            <View style={styles.centeredView}>
-              <View style={styles.modalView}>
-                <Text style={styles.modalText} variant="bodyLarge">Congratulations! You earned enough points for your reward. Let your parent know!</Text>
-                <Button
-                  mode="contained" style={styles.taskModalButton}
-                  onPress={() => setRewardModal(false)}
-                >
-                  <Text style={styles.buttonText}>OK</Text>
-                </Button>
-              </View>
-            </View>
-          </Modal>
-          <Modal
-            animationType="slide"
-            transparent={true}
-            visible={modalVisible}
-            onRequestClose={() => {
-              Alert.alert("Modal has been closed.");
-              setModalVisible(!modalVisible);
-            }}
-            style={styles.addTaskModal}
-          >
-            <View style={styles.centeredView}>
-              <View style={styles.modalView}>
-                <Text style={styles.modalText} variant="bodyLarge">Add a New Task</Text>
-
-                <View>
-                  <TextInput
-                    value={newTaskName}
-                    placeholder={'Enter Task Name Here'}
-                    onChangeText={(value) => setNewTaskName(value)}
-                    style={styles.input}
-                    onSubmitEditing={Keyboard.dismiss}
-                    placeholderTextColor="gray"
-                    maxLength={35}
-                  />
-
-                </View>
-                <View>
-                  <TextInput
-                    placeholder={'Enter Task Description Here'}
-                    value={newTaskDescription}
-                    onChangeText={(text) => setNewTaskDescription(text)}
-                    style={styles.input}
-                    onSubmitEditing={Keyboard.dismiss}
-                    placeholderTextColor="gray"
-                    maxLength={45}
-                  />
-                </View>
-                <View>
-                  <TextInput
-                    placeholder={'Enter Task Point Value Here'}
-                    value={newTaskPoints}
-                    onChangeText={(text) => setNewTaskPoints(text)}
-                    style={styles.input}
-                    onSubmitEditing={Keyboard.dismiss}
-                    keyboardType="numeric"
-                    placeholderTextColor="gray"
-                    maxLength={2}
-                  />
-                </View>
-
-
-                <Button
-                  mode="contained" style={styles.taskModalButton}
-                  onPress={() => addTask()}
-                >
-                  <Text style={styles.buttonText}>Add Task</Text>
-                </Button>
-                <Button
-                  mode="contained" style={styles.taskModalButton}
-                  onPress={() => setModalVisible(false)}
-                >
-                  <Text style={styles.buttonText}>Cancel</Text>
-                </Button>
-              </View>
-              <View style={styles.snackbarsAddTask}>
-                <Snackbar
-                  visible={addTaskSnack}
-                  onDismiss={onDismissAppTaskSnackbar}
-                >
-                  Please fill out all fields.
-                </Snackbar>
-              </View>
-            </View>
-          </Modal>
-
-          <View style={styles.taskList}>
-            <Text style={styles.pointsText}>{userDetails.points} of {userDetails.pointsNeeded} Reward Points</Text>
-
-            <Button icon="checkbox-marked-circle-plus-outline" onPress={() => setModalVisible(true)} mode="contained" style={styles.addTaskButton}>Add a Task</Button>
-          </View>
-
-          <ScrollView style={styles.scrollBox}>
-            {tasks.map((task, key) => {
-              return (
-                <>
-                  <List.Section style={styles.itemRow} key={key}>
-                    <View>
-                      <Text variant="titleMedium">{task.name}  <Text variant="labelMedium">{task.points} points</Text></Text>
-
-                      <Text variant="labelMedium">{task.description}</Text>
-                    </View>
-                    <View>
-                      <Button
-                        icon="check-outline"
-                        mode="text"
-                        onPress={() => {
-                          taskCompleted(task.documentId, task.points);
-                        }}
-                      ></Button>
-                      <Button
-                        icon="trash-can-outline"
-                        mode="text"
-                        onPress={() => {
-                          handleRemoveTask(task.documentId);
-                        }}
-                      ></Button>
-                    </View>
-                  </List.Section>
-                  <Divider />
-                </>
-              );
-            })}
-          </ScrollView>
-
-
-        </>
-      )
-    }
+  const getChildTasks = async (name, id, points) => {
+    setTasksModal(true)
+    setChildTasksPoints(points)
+    let childtasks = []
+    const querySnapshot = await getDocs(collection(db, "users", id, 'Tasks'));
+    querySnapshot.forEach((doc) => {
+      childtasks.push(doc.data());
+    });
+    setChildTasksName(name)
+    setChildTasksId(id)
+    setChildTasks(childtasks)
   }
 
-  // -----------  Wish List View 
+  const getChildWishlist = async (name, id, familyId) => {
+    setWishlistModal(true)
+    setChildFamilyId(familyId)
+    let childwishlist = []
+    const wishListCollectionRef = collection(
+      db,
+      'Families',
+      `${userDetails.familyId}`,
+      'Wish List'
+    )
 
-  else if (taskOrWish == 'wish')
+    const q = query(collection(db, 'Families', familyId, 'Wish List'), where('userId', "==", id))
+    
+    const querySnapshot = await getDocs(q);
+    querySnapshot.forEach((doc) => {
+    childwishlist.push(doc.data());
+    });
+    setChildTasksName(name)
+    setChildTasksId(id)
+    setChildWishlist(childwishlist)
+  }
 
-    // Parent Wish List View -- NEED TouchableOpacity function to open up a new view with the child's wishlist
+  const closeTasksModal = () => {
+    setTasksModal(false)
+  }
 
-    if (userDetails.accountType == 'parent') {
-      return (
-        <>
-          <Appbar
-            style={styles.headerTasks}>
-            <Appbar.Content title={<SegmentedButtons
-              style={styles.segButtons}
-              value={taskOrWish}
-              onValueChange={setTaskOrWish}
+  // ----------- Begin rendering -- Task List View
 
-              buttons={[
-                {
-                  value: 'task',
-                  label: 'Task List',
-                  showSelectedCheck: true,
-                },
-                {
-                  value: 'wish',
-                  label: 'Wish List',
-                  showSelectedCheck: true,
-                },
-              ]}
-            />} />
-            <Appbar.Action icon="cog-outline" onPress={navToSettings} />
-          </Appbar>
-          <Divider />
-          <View style={styles.taskList}>
-            <Text variant="titleSmall">Select a Child below to view their Wish List</Text>
-          </View>
+  if (!settings) {
+    if (taskOrWish == 'task') {
 
-          <ScrollView style={styles.childList}>
-            {children.map((child, key) => {
-              return (
-                <>
-                  <List.Section style={styles.itemRow} key={key}>
-                    <View>
-                      <TouchableOpacity
-                        style={styles.child}
-                      ><Text variant="titleLarge"><Avatar.Image
-                        size={40}
-                        source={{ uri: child.photoURL }}
-                      />  {child.name}</Text>
-                      </TouchableOpacity>
-                    </View>
-                  </List.Section>
-                </>
-              );
-            })}
-          </ScrollView>
-        </>
-      )
-    }
+      // ----------- Parent Task List -- NEED TouchableOpacity function to open up a new view with the child's tasks
+      if (userDetails.accountType == 'parent') {
 
-    // ----------- WishList Child View
+        // individual child tasklist view
+        return (
+          <>
+            <Appbar
+              style={styles.headerTasks}>
+              <Appbar.Content title={<SegmentedButtons
+                style={styles.segButtons}
+                value={taskOrWish}
+                onValueChange={setTaskOrWish}
+                buttons={[
+                  {
+                    value: 'task',
+                    label: 'Task List',
+                    showSelectedCheck: true,
+                  },
+                  {
+                    value: 'wish',
+                    label: 'Wish List',
+                    showSelectedCheck: true,
+                  },
+                ]}
+              />} />
+              <Appbar.Action icon="cog-outline" onPress={navToSettings} />
+            </Appbar>
+            <Divider />
 
-    else if (userDetails.accountType == 'child') {
-      return (
-        <>
-          <Appbar
-            style={styles.headerTasks}>
-            <Appbar.Content title={<SegmentedButtons
-              style={styles.segButtons}
-              value={taskOrWish}
-              onValueChange={setTaskOrWish}
-
-              buttons={[
-                {
-                  value: 'task',
-                  label: 'Task List',
-                  showSelectedCheck: true,
-                },
-                {
-                  value: 'wish',
-                  label: 'Wish List',
-                  showSelectedCheck: true,
-                },
-              ]}
-            />} />
-            <Appbar.Action icon="cog-outline" onPress={navToSettings} />
-          </Appbar>
-          <Divider />
-
-
-          <List.Subheader>Wish List</List.Subheader>
-          <ScrollView style={styles.wishListScrollView}>
-            <View style={styles.wishList}>
-              <List.Section>
-                {wishListItems.map((item, key) => {
-                  return (
-                    <List.Section style={styles.itemRow} key={key}>
-                      <View style={styles.iconName}>
-                        <List.Item left={() => <List.Icon icon="gift-outline" />} />
-                        <Text>{item.item}</Text>
-                      </View>
-                      <Button
-                        icon="trash-can-outline"
-                        mode="text"
-                        onPress={() => {
-                          handleRemoveWishList(item.documentId, item.familyId);
-                        }}
-                      ></Button>
-                    </List.Section>
-                  );
-                })}
-              </List.Section>
+            <View style={styles.taskList}>
+              <Text variant="titleSmall">Select a Child below to view their Tasks</Text>
             </View>
-          </ScrollView>
-          <View style={styles.screen}>
-            <Button onPress={toggleWishListView}>Add to Wish List</Button>
 
-            <Modal
-              animationType="fade"
-              transparent
-              visible={wishListModalVisible}
-              presentationStyle="overFullScreen"
-            >
-              <View style={styles.mainContainer}>
-                <View style={styles.mainView}>
-                  <TextInput
-                    placeholder="Add Item Name"
-                    value={wishListInputValue}
-                    style={styles.textInput}
-                    onChangeText={(value) => setWishListInputValue(value)}
-                  />
-                  <View style={styles.buttonView}>
-                    <Button onPress={toggleWishListView} style={styles.closeButton}>
-                      Close
-                    </Button>
-                    <Button
-                      onPress={() => {
-                        toggleWishListView();
-                        handleAddWishList();
+            <ScrollView style={styles.childList}>
+
+              {children.map((child, key) => {
+                return (
+                  <>
+                    <List.Section style={styles.itemRow} key={key}>
+                      <View>
+                        <TouchableOpacity
+                          style={styles.child}
+                          onPress={() => getChildTasks(child.name, child.id, child.points)}
+                        ><Text variant="displaySmall"><Avatar.Image
+                          size={40}
+                          source={{ uri: child.photoURL }}
+                        />  {child.name} {child.reward && <Text variant="titleMedium" style={styles.childTaskReward}>Reward</Text>}</Text>
+                        </TouchableOpacity>
+                      </View>
+                    </List.Section>
+                    <Modal
+                      animationType="slide"
+                      transparent={false}
+                      visible={tasksModal}
+                      onRequestClose={() => {
+                        Alert.alert("Modal has been closed.");
+                        setTasksModal(!tasksModal);
                       }}
-                      style={styles.closeButton}
+                      style={styles.showTasksModal}
                     >
-                      Add
-                    </Button>
-                  </View>
+                      <ScrollView style={styles.scrollBox}>
+                        <Text variant={'titleLarge'} style={styles.childTasksName}>{childTasksName}'s Tasks</Text>
+                        <Text variant={'titleSmall'} style={styles.childTasksPoints}> {childTasksPoints} of {child.pointsNeeded} Reward Points Earned</Text> 
+                        <Divider />
+
+                        {!childTasks.length && <Text style={{marginTop: 10, marginBottom: 10, marginLeft: 'auto', marginRight: 'auto'}}variant='titleLarge'>No tasks for this child!</Text>}       
+                        {childTasks.map((task, key) => {
+
+                          return (
+                            <>
+                              <List.Section style={styles.itemRow} key={key}>
+                                <View>
+                                  <Text variant="titleMedium">{task.name}  <Text variant="labelMedium">{task.points} points</Text></Text>
+
+                                  <Text variant="labelMedium">{task.description}</Text>
+                                </View>
+                                <View>
+                                  <Button
+                                    icon="check-outline"
+                                    mode="text"
+                                    onPress={() => {
+                                      parentTaskCompleted(task.documentId, task.points, child.pointsNeeded);
+                                    }}
+                                  ></Button>
+                                  <Button
+                                    icon="trash-can-outline"
+                                    mode="text"
+                                    onPress={() => {
+                                      parentHandleRemoveTask(task.documentId);
+                                    }}
+                                  ></Button>
+                                </View>
+                              </List.Section>
+                              <Divider />
+
+                            </>
+                          );
+                        })}
+                        <Button style={styles.childTasksButton} onPress={() => resetReward()} mode="contained">Reset Reward</Button>
+                        <Button style={styles.childTasksButton} onPress={() => {
+                          setTasksModal(false)
+                          closeTasksModal()
+                        }} mode="contained">Return to Children</Button>
+
+                      </ScrollView>
+
+                    </Modal>
+                  </>
+                )
+              })
+              }
+            </ScrollView>
+          </>
+        )
+
+      }
+      // ----------- Child Task List 
+
+      else if (userDetails.accountType == 'child') {
+        return (
+          <>
+
+            <Appbar
+              style={styles.headerTasks}>
+              <Appbar.Content title={<SegmentedButtons
+                style={styles.segButtons}
+                value={taskOrWish}
+                onValueChange={setTaskOrWish}
+                buttons={[
+                  {
+                    value: 'task',
+                    label: 'Task List',
+                    showSelectedCheck: true,
+                  },
+                  {
+                    value: 'wish',
+                    label: 'Wish List',
+                    showSelectedCheck: true,
+                  },
+                ]}
+              />} />
+              <Appbar.Action icon="cog-outline" onPress={navToSettings} />
+            </Appbar>
+            <Divider />
+            <Modal
+              animationType="slide"
+              transparent={true}
+              visible={rewardModal}
+              onRequestClose={() => {
+                Alert.alert("Modal has been closed.");
+                setRewardModal(!rewardModal);
+              }}
+              style={styles.addTaskModal}
+            >
+              <View style={styles.centeredView}>
+                <View style={styles.modalView}>
+                  <Text style={styles.modalText} variant="bodyLarge">Congratulations! You earned enough points for your reward. Let your parent know!</Text>
+                  <Button
+                    mode="contained" style={styles.taskModalButton}
+                    onPress={() => setRewardModal(false)}
+                  >
+                    <Text style={styles.buttonText}>OK</Text>
+                  </Button>
                 </View>
               </View>
             </Modal>
+            <Modal
+              animationType="slide"
+              transparent={true}
+              visible={modalVisible}
+              onRequestClose={() => {
+                Alert.alert("Modal has been closed.");
+                setModalVisible(!modalVisible);
+              }}
+              style={styles.addTaskModal}
+            >
+              <View style={styles.centeredView}>
+                <View style={styles.modalView}>
+                  <Text style={styles.modalText} variant="bodyLarge">Add a New Task</Text>
+
+                  <View>
+                    <TextInput
+                      value={newTaskName}
+                      placeholder={'Enter Task Name Here'}
+                      onChangeText={(value) => setNewTaskName(value)}
+                      style={styles.input}
+                      onSubmitEditing={Keyboard.dismiss}
+                      placeholderTextColor="gray"
+                      maxLength={35}
+                    />
+
+                  </View>
+                  <View>
+                    <TextInput
+                      placeholder={'Enter Task Description Here'}
+                      value={newTaskDescription}
+                      onChangeText={(text) => setNewTaskDescription(text)}
+                      style={styles.input}
+                      onSubmitEditing={Keyboard.dismiss}
+                      placeholderTextColor="gray"
+                      maxLength={45}
+                    />
+                  </View>
+                  <View>
+                    <TextInput
+                      placeholder={'Enter Task Point Value Here'}
+                      value={newTaskPoints}
+                      onChangeText={(text) => setNewTaskPoints(text)}
+                      style={styles.input}
+                      onSubmitEditing={Keyboard.dismiss}
+                      keyboardType="numeric"
+                      placeholderTextColor="gray"
+                      maxLength={2}
+                    />
+                  </View>
+
+
+                  <Button
+                    mode="contained" style={styles.taskModalButton}
+                    onPress={() => addTask()}
+                  >
+                    <Text style={styles.buttonText}>Add Task</Text>
+                  </Button>
+                  <Button
+                    mode="contained" style={styles.taskModalButton}
+                    onPress={() => setModalVisible(false)}
+                  >
+                    <Text style={styles.buttonText}>Cancel</Text>
+                  </Button>
+                </View>
+                <View style={styles.snackbarsAddTask}>
+                  <Snackbar
+                    visible={addTaskSnack}
+                    onDismiss={onDismissAppTaskSnackbar}
+                  >
+                    Please fill out all fields.
+                  </Snackbar>
+                </View>
+              </View>
+            </Modal>
+
+            <View style={styles.taskList}>
+              <Text style={styles.pointsText}>{userDetails.points} of {userDetails.pointsNeeded} Reward Points</Text>
+
+              <Button icon="checkbox-marked-circle-plus-outline" onPress={() => setModalVisible(true)} mode="contained" style={styles.addTaskButton}>Add a Task</Button>
+            </View>
+
+            <ScrollView style={styles.scrollBox}>
+              {tasks.map((task, key) => {
+                return (
+                  <>
+                    <List.Section style={styles.itemRow} key={key}>
+                      <View>
+                        <Text variant="titleMedium">{task.name}  <Text variant="labelMedium">{task.points} points</Text></Text>
+
+                        <Text variant="labelMedium">{task.description}</Text>
+                      </View>
+                      <View>
+                        <Button
+                          icon="check-outline"
+                          mode="text"
+                          onPress={() => {
+                            taskCompleted(task.documentId, task.points);
+                          }}
+                        ></Button>
+                        <Button
+                          icon="trash-can-outline"
+                          mode="text"
+                          onPress={() => {
+                            handleRemoveTask(task.documentId);
+                          }}
+                        ></Button>
+                      </View>
+                    </List.Section>
+                    <Divider />
+                  </>
+                );
+              })}
+            </ScrollView>
+
+
+          </>
+        )
+      }
+    }
+
+    // -----------  Wish List View 
+
+    else if (taskOrWish == 'wish')
+
+      // Parent Wish List View -- NEED TouchableOpacity function to open up a new view with the child's wishlist
+
+      if (userDetails.accountType == 'parent') {
+        return (
+          <>
+            <Appbar
+              style={styles.headerTasks}>
+              <Appbar.Content title={<SegmentedButtons
+                style={styles.segButtons}
+                value={taskOrWish}
+                onValueChange={setTaskOrWish}
+
+                buttons={[
+                  {
+                    value: 'task',
+                    label: 'Task List',
+                    showSelectedCheck: true,
+                  },
+                  {
+                    value: 'wish',
+                    label: 'Wish List',
+                    showSelectedCheck: true,
+                  },
+                ]}
+              />} />
+              <Appbar.Action icon="cog-outline" onPress={navToSettings} />
+            </Appbar>
+            <Divider />
+            <View style={styles.taskList}>
+              <Text variant="titleSmall">Select a Child below to view their Wish List</Text>
+            </View>
+
+            <ScrollView style={styles.childList}>
+            {children.map((child, key) => {
+                return (
+                  <>
+                    <List.Section style={styles.itemRow} key={key}>
+                      <View>
+                        <TouchableOpacity
+                          style={styles.child}
+                          onPress={() => getChildWishlist(child.name, child.id, child.familyId)}
+                        ><Text variant="displaySmall"><Avatar.Image
+                          size={40}
+                          source={{ uri: child.photoURL }}
+                        />  {child.name} {child.reward && <Text variant="titleMedium" style={styles.childTaskReward}>Reward</Text>}</Text>
+                        </TouchableOpacity>
+                      </View>
+                    </List.Section>
+                    <Modal
+                      animationType="slide"
+                      transparent={false}
+                      visible={wishlistModal}
+                      onRequestClose={() => {
+                        Alert.alert("Modal has been closed.");
+                        setTasksModal(!wishlistModal);
+                      }}
+                      style={styles.showTasksModal}
+                    >
+                      <ScrollView style={styles.scrollBox}>
+                        <Text variant={'titleLarge'} style={styles.childTasksName}>{childTasksName}'s Wishlist</Text>
+                        <Divider />
+                        {childWishlist.map((item, key) => {
+                    return (
+                      <List.Section style={styles.itemRow} key={key}>
+                        <View style={styles.iconName}>
+                          <List.Item left={() => <List.Icon icon="gift-outline" />} />
+                          <Text>{item.item}</Text>
+                        </View>
+                        <Button
+                          icon="trash-can-outline"
+                          mode="text"
+                          onPress={() => {
+                            parentHandleRemoveWishList(item.documentId, item.familyId);
+                          }}
+                        ></Button>
+                      </List.Section>
+                    );
+                  })}
+                        <Button style={styles.childTasksButton} onPress={() => {
+                          setWishlistModal(false)
+                        }} mode="contained">Return to Children</Button>
+
+
+                      </ScrollView>
+
+
+                    </Modal>
+                  </>
+                )
+              })
+              }
+            </ScrollView>
+          </>
+        )
+      }
+
+      // ----------- WishList Child View
+
+      else if (userDetails.accountType == 'child') {
+        return (
+          <>
+            <Appbar
+              style={styles.headerTasks}>
+              <Appbar.Content title={<SegmentedButtons
+                style={styles.segButtons}
+                value={taskOrWish}
+                onValueChange={setTaskOrWish}
+
+                buttons={[
+                  {
+                    value: 'task',
+                    label: 'Task List',
+                    showSelectedCheck: true,
+                  },
+                  {
+                    value: 'wish',
+                    label: 'Wish List',
+                    showSelectedCheck: true,
+                  },
+                ]}
+              />} />
+              <Appbar.Action icon="cog-outline" onPress={navToSettings} />
+            </Appbar>
+            <Divider />
+
+
+            <List.Subheader>Wish List</List.Subheader>
+            <ScrollView style={styles.wishListScrollView}>
+              <View style={styles.wishList}>
+                <List.Section>
+                  {wishListItems.map((item, key) => {
+                    return (
+                      <List.Section style={styles.itemRow} key={key}>
+                        <View style={styles.iconName}>
+                          <List.Item left={() => <List.Icon icon="gift-outline" />} />
+                          <Text>{item.item}</Text>
+                        </View>
+                        <Button
+                          icon="trash-can-outline"
+                          mode="text"
+                          onPress={() => {
+                            handleRemoveWishList(item.documentId, item.familyId);
+                          }}
+                        ></Button>
+                      </List.Section>
+                    );
+                  })}
+                </List.Section>
+              </View>
+            </ScrollView>
+            <View style={styles.screen}>
+              <Button onPress={toggleWishListView}>Add to Wish List</Button>
+
+              <Modal
+                animationType="fade"
+                transparent
+                visible={wishListModalVisible}
+                presentationStyle="overFullScreen"
+              >
+                <View style={styles.mainContainer}>
+                  <View style={styles.mainView}>
+                    <TextInput
+                      placeholder="Add Item Name"
+                      value={wishListInputValue}
+                      style={styles.textInput}
+                      onChangeText={(value) => setWishListInputValue(value)}
+                    />
+                    <View style={styles.buttonView}>
+                      <Button onPress={toggleWishListView} style={styles.closeButton}>
+                        Close
+                      </Button>
+                      <Button
+                        onPress={() => {
+                          toggleWishListView();
+                          handleAddWishList();
+                        }}
+                        style={styles.closeButton}
+                      >
+                        Add
+                      </Button>
+                    </View>
+                  </View>
+                </View>
+              </Modal>
+            </View>
+          </>
+        )
+      }
+  }
+
+  // ----------- Settings View
+
+  else if (settings && !editProfile) {
+    if (userDetails.birthday.seconds) {
+      return (
+        <>
+          <Appbar
+            style={styles.header}>
+            <Appbar.Content title={'Settings'} />
+            <Appbar.Action icon="keyboard-backspace" onPress={navToSettings} />
+          </Appbar>
+
+          <View style={styles.userInfo}>
+            <Button icon='pencil' onPress={gotoEditProfile}>Edit Profile</Button>
+            <Text style={styles.av}>
+              <Avatar.Image
+                size={170}
+                source={{ uri: userDetails.photoURL }}
+              />
+            </Text>
+            <Text variant="titleMedium">Name: {userDetails.name} </Text>
+            <Text variant="titleMedium">E-mail: {auth.currentUser.email}</Text>
+            <Text variant="titleMedium">Family ID: {userDetails.familyId}</Text>
+            <Text variant="titleMedium">Birthday: {getBirthday()}</Text>
+            <Divider style={{ marginTop: 15 }} />
+            <Button icon="logout" mode="contained" onPress={handleSignOut} style={styles.logoutButton}>
+              Logout
+            </Button>
           </View>
         </>
       )
     }
-}
-
-// ----------- Settings View
-
-else if (settings && !editProfile) {
-  if (userDetails.birthday.seconds) {
-    return (
-      <>
-        <Appbar
-          style={styles.header}>
-          <Appbar.Content title={'Settings'} />
-          <Appbar.Action icon="keyboard-backspace" onPress={navToSettings} />
-        </Appbar>
-
-        <View style={styles.userInfo}>
-          <Button icon='pencil' onPress={gotoEditProfile}>Edit Profile</Button>
-          <Text style={styles.av}>
-            <Avatar.Image
-              size={170}
-              source={{ uri: userDetails.photoURL }}
-            />
-          </Text>
-          <Text variant="titleMedium">Name: {userDetails.name} </Text>
-          <Text variant="titleMedium">E-mail: {auth.currentUser.email}</Text>
-          <Text variant="titleMedium">Family ID: {userDetails.familyId}</Text>
-          <Text variant="titleMedium">Birthday: {getBirthday()}</Text>
-          <Divider style={{ marginTop: 15 }} />
-          <Button icon="logout" mode="contained" onPress={handleSignOut} style={styles.logoutButton}>
-            Logout
-          </Button>
-        </View>
-      </>
-    )
   }
-}
 
-// View for editing the Profile
+  // View for editing the Profile
 
-else if (settings && editProfile) {
-  if (userDetails.name) {
-    return (
-      <>
-        <Appbar
-          style={styles.header}>
-          <Appbar.Content title={'Edit Profile'} />
-          <Appbar.Action icon="keyboard-backspace" onPress={profileEditBack} />
-        </Appbar>
+  else if (settings && editProfile) {
+    if (userDetails.name) {
+      return (
+        <>
+          <Appbar
+            style={styles.header}>
+            <Appbar.Content title={'Edit Profile'} />
+            <Appbar.Action icon="keyboard-backspace" onPress={profileEditBack} />
+          </Appbar>
 
-        <View style={styles.userInfo}>
-          <Button icon="image" onPress={pickImage} mode="contained" style={styles.saveButton}> Choose a New Photo </Button>
-          {imageUpload &&
-            <>
-              <Avatar.Image
-                size={170}
-                source={{ uri: imageUpload }}
-                style={styles.av}
+          <View style={styles.userInfo}>
+            <Button icon="image" onPress={pickImage} mode="contained" style={styles.saveButton}> Choose a New Photo </Button>
+            {imageUpload &&
+              <>
+                <Avatar.Image
+                  size={170}
+                  source={{ uri: imageUpload }}
+                  style={styles.av}
+                />
+                <Button onPress={uploadFile} mode="contained" style={styles.saveButton}>Update Photo</Button>
+              </>
+            }
+
+            <Divider style={{ marginTop: 30, marginBottom: 30 }} />
+            <View>
+              <Text variant="titleMedium" style={styles.instructions}>Fill in the fields you would like to change and click "Save Changes".</Text>
+              <TextInput
+                value={userName}
+                placeholder={'Enter New Name Here'}
+                onChangeText={(value) => setUserName(value)}
+                style={styles.input}
+                onSubmitEditing={Keyboard.dismiss}
               />
-              <Button onPress={uploadFile} mode="contained" style={styles.saveButton}>Update Photo</Button>
-            </>
-          }
 
-          <Divider style={{ marginTop: 30, marginBottom: 30 }} />
-          <View>
-            <Text variant="titleMedium" style={styles.instructions}>Fill in the fields you would like to change and click "Save Changes".</Text>
-            <TextInput
-              value={userName}
-              placeholder={'Enter New Name Here'}
-              onChangeText={(value) => setUserName(value)}
-              style={styles.input}
-              onSubmitEditing={Keyboard.dismiss}
-            />
+            </View>
+            <View>
+              <TextInput
+                placeholder={'Enter New E-mail Here'}
 
+                value={email}
+                onChangeText={(text) => setEmail(text)}
+                style={styles.input}
+              />
+            </View>
+            <View>
+              <TextInput
+                placeholder={'Enter New FamilyID Here'}
+                value={fId}
+                onChangeText={(text) => setFId(text)}
+                style={styles.input}
+              />
+            </View>
+            <Button onPress={saveAndDismiss} mode="contained" style={styles.saveButton}>Save Changes</Button>
           </View>
-          <View>
-            <TextInput
-              placeholder={'Enter New E-mail Here'}
+          <View style={styles.snackbars}>
+            <Snackbar
+              visible={nameVisible}
+              onDismiss={onDismissNameSnackBar}
+              action={{
+                label: 'Return to Profile',
+                onPress: () => {
+                  setEditProfile(false)
+                },
+              }}>
+              Profile Updated
+            </Snackbar>
 
-              value={email}
-              onChangeText={(text) => setEmail(text)}
-              style={styles.input}
-            />
+            <Snackbar
+              visible={emailErrorVisible}
+              onDismiss={onDismissNameSnackBar}
+              action={{
+                label: 'Retry',
+                onPress: () => {
+                  setEmailErrorVisible(false)
+                },
+              }}>
+              Not a valid e-mail
+            </Snackbar>
           </View>
-          <View>
-            <TextInput
-              placeholder={'Enter New FamilyID Here'}
-              value={fId}
-              onChangeText={(text) => setFId(text)}
-              style={styles.input}
-            />
-          </View>
-          <Button onPress={saveAndDismiss} mode="contained" style={styles.saveButton}>Save Changes</Button>
-        </View>
-        <View style={styles.snackbars}>
-          <Snackbar
-            visible={nameVisible}
-            onDismiss={onDismissNameSnackBar}
-            action={{
-              label: 'Return to Profile',
-              onPress: () => {
-                setEditProfile(false)
-              },
-            }}>
-            Profile Updated
-          </Snackbar>
-
-          <Snackbar
-            visible={emailErrorVisible}
-            onDismiss={onDismissNameSnackBar}
-            action={{
-              label: 'Retry',
-              onPress: () => {
-                setEmailErrorVisible(false)
-              },
-            }}>
-            Not a valid e-mail
-          </Snackbar>
-        </View>
-      </>
-    )
+        </>
+      )
+    }
   }
-}
 }
 
 export default TaskScreen
@@ -1053,6 +1225,31 @@ const styles = StyleSheet.create({
   },
   childList: {
     marginTop: 20,
+  },
+  showTasksModal: {
+    margin: 100,
+    paddingTop: 100,
+  },
+  childTasksName: {
+    marginTop: 70,
+    marginLeft: 'auto',
+    marginRight: 'auto',
+  },
+  childTasksPoints: {
+    marginTop: 10,
+    marginBottom: 10,
+    marginLeft: 'auto',
+    marginRight: 'auto',
+  },
+  childTaskReward: {
+    color: 'green',
+  },
+  childTasksButton: {
+    marginLeft: 'auto',
+    marginRight: 'auto',
+    width: '60%',
+    marginBottom: 10,
+    marginTop: 10,
   }
 
 })
