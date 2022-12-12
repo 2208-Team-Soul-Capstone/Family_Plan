@@ -1,9 +1,9 @@
-import { StyleSheet, View, TextInput, Keyboard, Modal, ScrollView, Dimensions } from 'react-native'
+import { StyleSheet, View, TextInput, Keyboard, Modal, ScrollView, Dimensions, TouchableOpacity } from 'react-native'
 import React, { useState, useEffect, useLayoutEffect } from 'react'
 import { auth, db } from '../firebase';
 import { useNavigation } from '@react-navigation/native';
-import { Button, Divider, SegmentedButtons, Appbar, Avatar, List, Text, Snackbar } from 'react-native-paper';
-import { doc, getDoc, collection, onSnapshot, deleteDoc, setDoc, } from 'firebase/firestore';
+import { Button, Divider, SegmentedButtons, Appbar, Avatar, List, Text, Snackbar, Chip } from 'react-native-paper';
+import { doc, getDocs, collection, onSnapshot, deleteDoc, setDoc, query, where } from 'firebase/firestore';
 import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import * as ImagePicker from 'expo-image-picker'
 import * as EmailValidator from 'email-validator';
@@ -13,25 +13,6 @@ const TaskScreen = () => {
 
   // get firebase storage
   const storage = getStorage();
-
-  // take the auth uid to bring in the user details object from firestore and setup snapshot listener
-  useEffect(() => {
-    const u = onSnapshot(doc(db, "users", auth.currentUser.uid), (doc) => {
-      setUserDetails(doc.data())
-    })
-  }, [])
-
-  // snapshot listener to realtime update task list
-  useLayoutEffect(() => {
-    const tasksRef = collection(db, 'users', `${auth.currentUser.uid}`, 'Tasks')
-    onSnapshot(tasksRef, (snapshot) => {
-      let allTasks = []
-      snapshot.docs.forEach((doc) => {
-        allTasks.push({ ...doc.data(), id: doc.id })
-      })
-      setTasks(allTasks)
-    })
-  }, [])
 
   const navigation = useNavigation();
 
@@ -50,9 +31,6 @@ const TaskScreen = () => {
   // for snacks to appear when editing profile
   const [nameVisible, setNameVisible] = useState(false)
   const [emailErrorVisible, setEmailErrorVisible] = useState(false)
-  const [emailVisible, setEmailVisible] = useState(false)
-  const [fIdVisible, setFIdVisible] = useState(false)
-  const [photoOrUser, setPhotoOrUser] = useState('photo')
 
   // add task states
   const [modalVisible, setModalVisible] = useState(false)
@@ -62,6 +40,8 @@ const TaskScreen = () => {
   const [addTaskSnack, setAddTaskSnack] = useState(false)
   const [tasks, setTasks] = useState([])
   const [rewardModal, setRewardModal] = useState([false])
+  const [wishlistModal, setWishlistModal] = useState(false)
+  const [tasksModal, setTasksModal] = useState(false)
 
 
   // [ Wish List Section Starts Here ]
@@ -72,6 +52,49 @@ const TaskScreen = () => {
   // Parent View States
   const [children, setChildren] = useState([])
   const [childTasks, setChildTasks] = useState([])
+  const [childTasksName, setChildTasksName] = useState('')
+  const [childTasksId, setChildTasksId] = useState('')
+  const [childFamilyId, setChildFamilyId] = useState('')
+  const [childTasksPoints, setChildTasksPoints] = useState(0)
+  const [childWishlist, setChildWishlist] = useState([])
+
+  //take the auth uid to bring in the user details object from firestore and setup snapshot listener
+  useEffect(() => {
+    const u = onSnapshot(doc(db, "users", auth.currentUser.uid), (doc) => {
+      setUserDetails(doc.data())
+    })
+  }, [])
+
+  // after the useEffect above sets the userDetails state variable, need the userDetails.familyId to complete the firebase query. sometimes it works, sometimes it shows up as undefined because the userDetails isn't set yet
+  useEffect(() => {
+    const getChildren = async () => {
+      let allChildren = []
+      const childrenRef = collection(db, "users")
+      const c = query(childrenRef, where("accountType", "==", "child"), where('familyId', '==', userDetails.familyId))
+      const querySnapshot = await getDocs(c)
+      querySnapshot.forEach((doc) => {
+        // doc.data() is never undefined for query doc snapshots
+        allChildren.push({ ...doc.data(), id: doc.id })
+      })
+      setChildren(allChildren)
+    }
+    if (userDetails.familyId) {
+      getChildren()
+    }
+  }, [userDetails, tasksModal, childTasksPoints, setEditProfile])
+
+  //snapshot listener to realtime update task list
+  useLayoutEffect(() => {
+    const tasksRef = collection(db, 'users', `${auth.currentUser.uid}`, 'Tasks')
+    onSnapshot(tasksRef, (snapshot) => {
+      let allTasks = []
+      snapshot.docs.forEach((doc) => {
+        allTasks.push({ ...doc.data(), id: doc.id })
+      })
+      setTasks(allTasks)
+    })
+  }, [userDetails])
+
 
   // ---------- Wish List Logic
 
@@ -89,6 +112,7 @@ const TaskScreen = () => {
 
     onSnapshot(wishListCollectionRef, (snapshot) => {
       let allItems = []
+
       snapshot.docs.forEach((doc) => {
         const wishItem = {
           item: doc.data().item,
@@ -99,6 +123,7 @@ const TaskScreen = () => {
         };
         allItems.push(wishItem);
       })
+
       const itemsByUserId = allItems.filter(id => id.userId === auth.currentUser.uid);
       setWishListItems(itemsByUserId);
     })
@@ -125,6 +150,11 @@ const TaskScreen = () => {
 
   const handleRemoveWishList = async (documentId, familyId) => {
     deleteDoc(doc(db, 'Families', familyId, 'Wish List', documentId));
+  };
+
+  const parentHandleRemoveWishList = async (documentId, familyId) => {
+    deleteDoc(doc(db, 'Families', familyId, 'Wish List', documentId));
+    getChildWishlist(childTasksName, childTasksId, childFamilyId)
   };
 
   // [ Wish List Section Ends Here ]
@@ -175,7 +205,6 @@ const TaskScreen = () => {
 
   const taskCompleted = async (documentId, points) => {
     let newpoints = userDetails.points += parseFloat(points)
-    console.log(newpoints)
     if (newpoints < userDetails.pointsNeeded) {
       setDoc(doc(db, "users", auth.currentUser.uid), {
         points: newpoints
@@ -191,6 +220,37 @@ const TaskScreen = () => {
 
     deleteDoc(doc(db, 'users', auth.currentUser.uid, 'Tasks', documentId));
   };
+
+  const parentHandleRemoveTask = async (documentId) => {
+    deleteDoc(doc(db, 'users', childTasksId, 'Tasks', documentId));
+    getChildTasks(childTasksName, childTasksId, childTasksPoints)
+  };
+
+
+  const parentTaskCompleted = async (documentId, points, pointsNeeded) => {
+    let currentpoints = childTasksPoints
+    let newpoints = currentpoints += parseFloat(points)
+
+    if (newpoints < pointsNeeded) {
+      setDoc(doc(db, "users", childTasksId), {
+        points: newpoints
+      }, { merge: true })
+    }
+    else if (newpoints >= pointsNeeded) {
+      setDoc(doc(db, "users", childTasksId), {
+        points: 0,
+        reward: true,
+      }, { merge: true })
+    }
+    deleteDoc(doc(db, 'users', childTasksId, 'Tasks', documentId));
+    getChildTasks(childTasksName, childTasksId, newpoints)
+  };
+
+  const resetReward = () => {
+    setDoc(doc(db, "users", childTasksId), {
+      reward: false,
+    }, { merge: true })
+  }
 
   // convert numerical date object to string for settings page 
 
@@ -251,66 +311,23 @@ const TaskScreen = () => {
     }
   }
 
-  // ----------- conditional render for user details so can be updated by settings save changes
-
-  const SettingsEmail = () => {
-    if (profilePic) {
-      return <Text style={styles.av}>
-        <Avatar.Image
-          size={170}
-          source={{ uri: profilePic }}
-        />
-      </Text>
-    } else {
-      return <Text style={styles.av}>
-        <Avatar.Image
-          size={170}
-          source={{ uri: userDetails.photoURL }}
-        />
-      </Text>
-    }
-  }
-
-  const SettingsFamilyID = () => {
-    if (profilePic) {
-      return <Text style={styles.av}>
-        <Avatar.Image
-          size={170}
-          source={{ uri: profilePic }}
-        />
-      </Text>
-    } else {
-      return <Text style={styles.av}>
-        <Avatar.Image
-          size={170}
-          source={{ uri: userDetails.photoURL }}
-        />
-      </Text>
-    }
-  }
   // ----------- Update user details (minus photo) 
 
   const saveDetails = () => {
-
-    console.log(userName)
     if (userName !== null) {
       setDoc(doc(db, "users", auth.currentUser.uid), {
         name: userName,
       }, { merge: true })
       setUserName(null)
-      console.log('name updated')
       setNameVisible(true)
     }
 
     if (email !== null) {
 
-      console.log(EmailValidator.validate(email));
-
       if (EmailValidator.validate(email)) {
         setDoc(doc(db, "users", auth.currentUser.uid), {
           email: email,
         }, { merge: true })
-        console.log('email updated')
       }
       else {
         setEmailErrorVisible(true)
@@ -333,14 +350,54 @@ const TaskScreen = () => {
     saveDetails()
   }
 
+  const getChildTasks = async (name, id, points) => {
+    setTasksModal(true)
+    setChildTasksPoints(points)
+    let childtasks = []
+    const querySnapshot = await getDocs(collection(db, "users", id, 'Tasks'));
+    querySnapshot.forEach((doc) => {
+      childtasks.push(doc.data());
+    });
+    setChildTasksName(name)
+    setChildTasksId(id)
+    setChildTasks(childtasks)
+  }
+
+  const getChildWishlist = async (name, id, familyId) => {
+    setWishlistModal(true)
+    setChildFamilyId(familyId)
+    let childwishlist = []
+    const wishListCollectionRef = collection(
+      db,
+      'Families',
+      `${userDetails.familyId}`,
+      'Wish List'
+    )
+
+    const q = query(collection(db, 'Families', familyId, 'Wish List'), where('userId', "==", id))
+    
+    const querySnapshot = await getDocs(q);
+    querySnapshot.forEach((doc) => {
+    childwishlist.push(doc.data());
+    });
+    setChildTasksName(name)
+    setChildTasksId(id)
+    setChildWishlist(childwishlist)
+  }
+
+  const closeTasksModal = () => {
+    setTasksModal(false)
+  }
+
   // ----------- Begin rendering -- Task List View
 
   if (!settings) {
     if (taskOrWish == 'task') {
 
       // ----------- Parent Task List -- NEED TouchableOpacity function to open up a new view with the child's tasks
-
       if (userDetails.accountType == 'parent') {
+
+        // individual child tasklist view
         return (
           <>
             <Appbar
@@ -367,31 +424,92 @@ const TaskScreen = () => {
             <Divider />
 
             <View style={styles.taskList}>
-              <Text style={styles.pointsText}>Select a Child below to view their Tasks</Text>
+              <Text variant="titleSmall">Select a Child below to view their Tasks</Text>
             </View>
 
-            <ScrollView style={styles.scrollBox}>
+            <ScrollView style={styles.childList}>
+
               {children.map((child, key) => {
                 return (
                   <>
                     <List.Section style={styles.itemRow} key={key}>
                       <View>
-                      <TouchableOpacity
-                        style={styles.button}
-                        onPress={onPress}
-                      >{child.name}
-                      </TouchableOpacity>
+                        <TouchableOpacity
+                          style={styles.child}
+                          onPress={() => getChildTasks(child.name, child.id, child.points)}
+                        ><Text variant="displaySmall"><Avatar.Image
+                          size={40}
+                          source={{ uri: child.photoURL }}
+                        />  {child.name} {child.reward && <Text variant="titleMedium" style={styles.childTaskReward}>Reward</Text>}</Text>
+                        </TouchableOpacity>
                       </View>
                     </List.Section>
-                    <Divider />
+                    <Modal
+                      animationType="slide"
+                      transparent={false}
+                      visible={tasksModal}
+                      onRequestClose={() => {
+                        Alert.alert("Modal has been closed.");
+                        setTasksModal(!tasksModal);
+                      }}
+                      style={styles.showTasksModal}
+                    >
+                      <ScrollView style={styles.scrollBox}>
+                        <Text variant={'titleLarge'} style={styles.childTasksName}>{childTasksName}'s Tasks</Text>
+                        <Text variant={'titleSmall'} style={styles.childTasksPoints}> {childTasksPoints} of {child.pointsNeeded} Reward Points Earned</Text> 
+                        <Divider />
+
+                        {!childTasks.length && <Text style={{marginTop: 10, marginBottom: 10, marginLeft: 'auto', marginRight: 'auto'}}variant='titleLarge'>No tasks for this child!</Text>}       
+                        {childTasks.map((task, key) => {
+
+                          return (
+                            <>
+                              <List.Section style={styles.itemRow} key={key}>
+                                <View>
+                                  <Text variant="titleMedium">{task.name}  <Text variant="labelMedium">{task.points} points</Text></Text>
+
+                                  <Text variant="labelMedium">{task.description}</Text>
+                                </View>
+                                <View>
+                                  <Button
+                                    icon="check-outline"
+                                    mode="text"
+                                    onPress={() => {
+                                      parentTaskCompleted(task.documentId, task.points, child.pointsNeeded);
+                                    }}
+                                  ></Button>
+                                  <Button
+                                    icon="trash-can-outline"
+                                    mode="text"
+                                    onPress={() => {
+                                      parentHandleRemoveTask(task.documentId);
+                                    }}
+                                  ></Button>
+                                </View>
+                              </List.Section>
+                              <Divider />
+
+                            </>
+                          );
+                        })}
+                        <Button style={styles.childTasksButton} onPress={() => resetReward()} mode="contained">Reset Reward</Button>
+                        <Button style={styles.childTasksButton} onPress={() => {
+                          setTasksModal(false)
+                          closeTasksModal()
+                        }} mode="contained">Return to Children</Button>
+
+                      </ScrollView>
+
+                    </Modal>
                   </>
-                );
-              })}
+                )
+              })
+              }
             </ScrollView>
           </>
         )
-      }
 
+      }
       // ----------- Child Task List 
 
       else if (userDetails.accountType == 'child') {
@@ -566,7 +684,7 @@ const TaskScreen = () => {
 
     else if (taskOrWish == 'wish')
 
-    // Parent Wish List View -- NEED TouchableOpacity function to open up a new view with the child's wishlist
+      // Parent Wish List View -- NEED TouchableOpacity function to open up a new view with the child's wishlist
 
       if (userDetails.accountType == 'parent') {
         return (
@@ -595,31 +713,73 @@ const TaskScreen = () => {
             </Appbar>
             <Divider />
             <View style={styles.taskList}>
-              <Text style={styles.pointsText}>Select a Child below to view their Wish List</Text>
+              <Text variant="titleSmall">Select a Child below to view their Wish List</Text>
             </View>
 
-            <ScrollView style={styles.scrollBox}>
-              {children.map((child, key) => {
+            <ScrollView style={styles.childList}>
+            {children.map((child, key) => {
                 return (
                   <>
                     <List.Section style={styles.itemRow} key={key}>
                       <View>
-                      <TouchableOpacity
-                        style={styles.button}
-                        onPress={onPress}
-                      >{child.name}
-                      </TouchableOpacity>
+                        <TouchableOpacity
+                          style={styles.child}
+                          onPress={() => getChildWishlist(child.name, child.id, child.familyId)}
+                        ><Text variant="displaySmall"><Avatar.Image
+                          size={40}
+                          source={{ uri: child.photoURL }}
+                        />  {child.name} {child.reward && <Text variant="titleMedium" style={styles.childTaskReward}>Reward</Text>}</Text>
+                        </TouchableOpacity>
                       </View>
                     </List.Section>
-                    <Divider />
+                    <Modal
+                      animationType="slide"
+                      transparent={false}
+                      visible={wishlistModal}
+                      onRequestClose={() => {
+                        Alert.alert("Modal has been closed.");
+                        setTasksModal(!wishlistModal);
+                      }}
+                      style={styles.showTasksModal}
+                    >
+                      <ScrollView style={styles.scrollBox}>
+                        <Text variant={'titleLarge'} style={styles.childTasksName}>{childTasksName}'s Wishlist</Text>
+                        <Divider />
+                        {childWishlist.map((item, key) => {
+                    return (
+                      <List.Section style={styles.itemRow} key={key}>
+                        <View style={styles.iconName}>
+                          <List.Item left={() => <List.Icon icon="gift-outline" />} />
+                          <Text>{item.item}</Text>
+                        </View>
+                        <Button
+                          icon="trash-can-outline"
+                          mode="text"
+                          onPress={() => {
+                            parentHandleRemoveWishList(item.documentId, item.familyId);
+                          }}
+                        ></Button>
+                      </List.Section>
+                    );
+                  })}
+                        <Button style={styles.childTasksButton} onPress={() => {
+                          setWishlistModal(false)
+                        }} mode="contained">Return to Children</Button>
+
+
+                      </ScrollView>
+
+
+                    </Modal>
                   </>
-                );
-              })}
+                )
+              })
+              }
             </ScrollView>
           </>
         )
       }
-      
+
       // ----------- WishList Child View
 
       else if (userDetails.accountType == 'child') {
@@ -865,7 +1025,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     padding: 10,
     backgroundColor: 'lightgray',
-
   },
   segButtons: {
     marginLeft: 'auto',
@@ -1058,6 +1217,39 @@ const styles = StyleSheet.create({
   },
   taskModalButton: {
     marginBottom: 10,
+  },
+  child: {
+    marginLeft: 20,
+    marginBottom: 5,
+    padding: 5,
+  },
+  childList: {
+    marginTop: 20,
+  },
+  showTasksModal: {
+    margin: 100,
+    paddingTop: 100,
+  },
+  childTasksName: {
+    marginTop: 70,
+    marginLeft: 'auto',
+    marginRight: 'auto',
+  },
+  childTasksPoints: {
+    marginTop: 10,
+    marginBottom: 10,
+    marginLeft: 'auto',
+    marginRight: 'auto',
+  },
+  childTaskReward: {
+    color: 'green',
+  },
+  childTasksButton: {
+    marginLeft: 'auto',
+    marginRight: 'auto',
+    width: '60%',
+    marginBottom: 10,
+    marginTop: 10,
   }
 
 })

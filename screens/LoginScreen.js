@@ -66,13 +66,12 @@ const LoginScreen = () => {
   <Image
         style={styles.logo}
         source={{
-          uri: 'https://firebasestorage.googleapis.com/v0/b/familyplan-3d847.appspot.com/o/logo.jpg?alt=media&token=78d6580b-5e0c-406c-8fc7-10f801e91c3b',
+          uri: 'https://firebasestorage.googleapis.com/v0/b/familyplan-3d847.appspot.com/o/1.png?alt=media&token=dc752bb0-cf01-4cf3-b0de-a9f30c3d8366',
         }}
       />
       </Text>
       </View>
       <View style={styles.inputContainer}>
-
 
         <TextInput
           placeholder="Email"
@@ -118,7 +117,7 @@ const styles = StyleSheet.create({
   },
   container: {
     alignItems: 'center',
-    top: 95,
+    top: 155,
   },
   header: {
     marginTop: 60,
@@ -129,6 +128,7 @@ const styles = StyleSheet.create({
   },
   inputContainer: {
     width: '80%',
+    marginTop: 100,
   },
   input: {
     backgroundColor: 'white',
@@ -168,9 +168,10 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   logo: {
-    height: 275,
-    width: 240,
+    height: 65,
+    width: 320,
     marginLeft: 'auto',
     marginRight: 'auto',
+
   },
 });
