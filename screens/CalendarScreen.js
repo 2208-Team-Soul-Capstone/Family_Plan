@@ -1,12 +1,11 @@
 import { StyleSheet, View, TouchableOpacity, Modal, TextInput, Keyboard } from 'react-native'
-import React, { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect } from 'react'
 import { Button, Text } from 'react-native-paper';
-import {  Agenda } from 'react-native-calendars';
+import { Agenda } from 'react-native-calendars';
 import { Card } from 'react-native-paper';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { auth, db } from '../firebase';
 import { onSnapshot, doc, addDoc, collection, query, getDoc } from 'firebase/firestore';
-import { useFocusEffect } from '@react-navigation/native';
 
 const CalendarScreen = () => {
   const [items, setItems] = useState({});
@@ -15,7 +14,6 @@ const CalendarScreen = () => {
   const [userDetails, setUserDetails] = useState([])
   const [time, setTime] = useState(new Date(Date.now()));
   const [date, setDate] = useState(new Date());
-  const [startTime, setStartTime] = useState(new Date(Date.now()));
   const [loading, setLoading] = useState(false)
 
   //Get User data from DB
@@ -43,36 +41,21 @@ const CalendarScreen = () => {
   );
 
   //Get Agenda data from DB
-  useFocusEffect(
-    useCallback(() => {
-      let newItems = {}
-      const q = query(calendarRef)
-      const unsubscribe = onSnapshot(q, (snapshot) => {
-        snapshot.docs.forEach((doc) => {
-          Object.assign(newItems, doc.data())
-        })
-        setItems(newItems)
-      });
-      return () => unsubscribe();
-    }, [userDetails])
-  )
-
-  // useEffect(() => {
-  //   if (items === {}) {
-  //     loadItems()
-  //   }
-  // }, [items])
-
   const loadItems = () => {
-    setTimeout(() => {
-      console.log('Items Loaded!')
-    }, 1000);
+    let newItems = {}
+    const q = query(calendarRef)
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      snapshot.docs.forEach((doc) => {
+        Object.assign(newItems, doc.data())
+      })
+      setItems(newItems)
+    });
+    return () => unsubscribe();
   };
 
   const toggleModalView = () => {
     setModalVisible(!modalVisible);
   };
-
 
   // Add Event to DB
   const handleAddEvent = () => {
@@ -81,21 +64,17 @@ const CalendarScreen = () => {
     ),
       {
         [`${date.toISOString().split('T')[0]}`]:
-          [{ 'startTime': [`${startTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`], 'name': [`${eventTitle}`] }]
+          [{ 'startTime': [`${time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`], 'name': [`${eventTitle}`] }]
       })
-      setLoading(!loading)
+    setLoading(!loading)
   };
-
-  // function reloadAgenda() {
-  //   setItems({})
-  // }
 
   function onDateSelected(event, value) {
     setDate(value)
   };
 
   function onStartTimeSelected(event, value) {
-    setStartTime(value);
+    setTime(value);
   };
 
   // Render each Event to Agenda view
@@ -165,7 +144,7 @@ const CalendarScreen = () => {
               <TextInput
                 placeholder={'Title'}
                 value={eventTitle}
-                onChangeText={(text) => { setEventTitle(text), console.log(eventTitle) }}
+                onChangeText={(text) => { setEventTitle(text) }}
                 style={styles.textInput}
                 onSubmitEditing={Keyboard.dismiss}
                 placeholderTextColor="gray"
