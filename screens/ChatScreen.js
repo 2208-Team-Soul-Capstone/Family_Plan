@@ -16,11 +16,13 @@ import {
   addDoc,
   collection
 } from 'firebase/firestore';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const Chat = ({ navigation }) => {
   const [messages, setMessages] = useState([]);
   const [userDetails, setUserDetails] = useState([]);
   const uid = auth.currentUser.uid;
+  const insets = useSafeAreaInsets()
 
   useEffect(() => {
     (async () => {
@@ -122,6 +124,8 @@ const Chat = ({ navigation }) => {
         scrollToBottom
         scrollToBottomComponent={scrollToBottomComponent}
         onSend={(messages) => onSend(messages)}
+        wrapInSafeArea={false}
+        bottomOffset={insets.bottom + 85}
         user={{
           _id: uid,
           name: userDetails.name,

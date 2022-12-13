@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "Family_Plan",
-    "slug": "Family_Plan",
+    "slug": "family-plan",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -28,6 +28,12 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "extra": {
+      "eas": {
+        "projectId": "6349e8fd-c74e-4b45-bfaf-0efba22fa067"
+      }
+    },
+    "owner": "tschwichtenberg"
   }
 }
