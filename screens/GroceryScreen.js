@@ -429,10 +429,13 @@ const styles = StyleSheet.create({
     paddingBottom: 55,
   },
   userInfo: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
     paddingBottom: 10,
     paddingTop: 15,
     width: 90,
-  },
+   },
   userRow: {
     paddingLeft: 10,
     display: 'flex',
