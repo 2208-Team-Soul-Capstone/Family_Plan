@@ -813,8 +813,9 @@ const TaskScreen = () => {
             </Appbar>
             <Divider />
 
-
-            <List.Subheader>Wish List</List.Subheader>
+            <View style={styles.taskList}>
+              <Text>Wish List</Text>
+            </View>
             <ScrollView style={styles.wishListScrollView}>
               <View style={styles.wishList}>
                 <List.Section>
@@ -840,20 +841,25 @@ const TaskScreen = () => {
             </ScrollView>
             <View style={styles.screen}>
               <Button onPress={toggleWishListView}>Add to Wish List</Button>
-
               <Modal
                 animationType="fade"
                 transparent
                 visible={wishListModalVisible}
                 presentationStyle="overFullScreen"
+             
               >
                 <View style={styles.mainContainer}>
                   <View style={styles.mainView}>
+                    <View style={styles.mainView2}>
+                      <Text style={styles.wishListHeading} variant="titleLarge">New Wish Item</Text>
+                      <Divider />
+                    </View>
                     <TextInput
-                      placeholder="Add Item Name"
+                      placeholder={'Item Name Here'}
                       value={wishListInputValue}
                       style={styles.textInput}
                       onChangeText={(value) => setWishListInputValue(value)}
+                      placeholderTextColor="gray"
                     />
                     <View style={styles.buttonView}>
                       <Button onPress={toggleWishListView} style={styles.closeButton}>
@@ -1162,7 +1168,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   closeButton: {
-    borderRadius: 5,
+    borderRadius: 20,
     backgroundColor: '#c4def6',
     width: 80,
   },
@@ -1183,21 +1189,29 @@ const styles = StyleSheet.create({
     left: '50%',
     elevation: 5,
     transform: [{ translateX: -(width * 0.4) }, { translateY: -90 }],
-    height: 180,
     width: width * 0.8,
     backgroundColor: '#fff',
-    borderRadius: 7,
+    borderRadius: 10,
+    padding: 35
   },
   textInput: {
     width: '80%',
-    paddingHorizontal: 16,
-    borderColor: 'rgba(0, 0, 0, 0.2)',
-    borderWidth: 1,
-    marginBottom: 18,
+    paddingHorizontal: 5,
+    backgroundColor: '#f2f2f2',
+    paddingHorizontal: 15,
+    paddingVertical: 10,
+    borderRadius: 10,
+    marginTop: 5,
+    fontSize: 20,
+    marginBottom: 20,
+  },
+  mainView2: {
+    paddingBottom: 10,
+    textAlign: 'center'
   },
   buttonView: {
     display: 'flex',
-    width: '60%',
+    width: '70%',
     flexDirection: 'row',
     justifyContent: 'space-between',
   },
