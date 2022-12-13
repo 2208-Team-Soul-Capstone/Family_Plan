@@ -459,12 +459,12 @@ const TaskScreen = () => {
                         <Text variant={'titleSmall'} style={styles.childTasksPoints}> {childTasksPoints} of {child.pointsNeeded} Reward Points Earned</Text> 
                         <Divider />
 
-                        {!childTasks.length && <Text style={{marginTop: 10, marginBottom: 10, marginLeft: 'auto', marginRight: 'auto'}}variant='titleLarge'>No tasks for this child!</Text>}       
+                        {!childTasks.length && <Text style={{marginTop: 30, marginBottom: 30, marginLeft: 'auto', marginRight: 'auto'}}variant='titleLarge'>No tasks for this child!</Text>}       
                         {childTasks.map((task, key) => {
 
                           return (
-                            <>
-                              <List.Section style={styles.itemRow} key={key}>
+                            <View key={key}>
+                              <List.Section style={styles.itemRow}>
                                 <View>
                                   <Text variant="titleMedium">{task.name}  <Text variant="labelMedium">{task.points} points</Text></Text>
 
@@ -489,7 +489,7 @@ const TaskScreen = () => {
                               </List.Section>
                               <Divider />
 
-                            </>
+                            </View>
                           );
                         })}
                         <Button style={styles.childTasksButton} onPress={() => resetReward()} mode="contained">Reset Reward</Button>
@@ -644,8 +644,8 @@ const TaskScreen = () => {
             <ScrollView style={styles.scrollBox}>
               {tasks.map((task, key) => {
                 return (
-                  <>
-                    <List.Section style={styles.itemRow} key={key}>
+                  <View key={key}>
+                    <List.Section style={styles.itemRow} >
                       <View>
                         <Text variant="titleMedium">{task.name}  <Text variant="labelMedium">{task.points} points</Text></Text>
 
@@ -669,7 +669,7 @@ const TaskScreen = () => {
                       </View>
                     </List.Section>
                     <Divider />
-                  </>
+                  </View>
                 );
               })}
             </ScrollView>
@@ -717,10 +717,11 @@ const TaskScreen = () => {
             </View>
 
             <ScrollView style={styles.childList}>
+              
             {children.map((child, key) => {
                 return (
-                  <>
-                    <List.Section style={styles.itemRow} key={key}>
+                  <View key={key}>
+                    <List.Section style={styles.itemRow}>
                       <View>
                         <TouchableOpacity
                           style={styles.child}
@@ -743,8 +744,11 @@ const TaskScreen = () => {
                       style={styles.showTasksModal}
                     >
                       <ScrollView style={styles.scrollBox}>
-                        <Text variant={'titleLarge'} style={styles.childTasksName}>{childTasksName}'s Wishlist</Text>
+                        <Text variant={'titleLarge'} style={styles.childTasksName}>{childTasksName}'s Wish List</Text>
                         <Divider />
+
+                        {!childWishlist.length && <Text style={{marginTop: 30, marginBottom: 30, marginLeft: 'auto', marginRight: 'auto'}}variant='titleLarge'>No wish list items for this child!</Text>}       
+
                         {childWishlist.map((item, key) => {
                     return (
                       <List.Section style={styles.itemRow} key={key}>
@@ -771,7 +775,7 @@ const TaskScreen = () => {
 
 
                     </Modal>
-                  </>
+                  </View>
                 )
               })
               }
